@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="ja">
+<script>document.documentElement.classList.add("js")</script>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bander 説明資料</title>
+<meta name="description" content="SESエンジニアのための稼働管理アプリ Bander を、AIとどう作ったか。AIハッカソンの説明資料です。">
+<meta name="theme-color" content="#10151c">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Geist+Mono:wght@400;500;600&display=swap">
+<style>
+  /* アプリ（src/theme/tokens.ts）と同じトークン。ページ全体を計器盤として組む */
+  :root {
+    --ink: #10151c;
+    --ink-deep: #0a0e13;
+    --surface: #19212b;
+    --surface-alt: #212c38;
+    --border: #2a3542;
+    --track: #222c38;
+    --text: #f2f5f8;
+    --text-2: #8a97a6;
+    --text-3: #5c6875;
+    --under: #e0a23a;
+    --in: #2fb89a;
+    --over: #e0685a;
+    --status: var(--in);
+    --sans: "Zen Kaku Gothic New", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", system-ui, sans-serif;
+    --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--ink-deep); -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--ink);
+    color: var(--text-2);
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 1.85;
+    overflow-x: hidden;
+  }
+  img { max-width: 100%; display: block; }
+  h1, h2, h3 { color: var(--text); margin: 0; line-height: 1.35; text-wrap: balance; font-weight: 900; word-break: auto-phrase; }
+  .nw { display: inline-block; }
+  p { margin: 0; }
+  a { color: var(--in); text-underline-offset: 3px; }
+  :focus-visible { outline: 2px solid var(--in); outline-offset: 3px; border-radius: 6px; }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .wrap { width: 100%; max-width: 1080px; margin-inline: auto; padding-inline: max(20px, env(safe-area-inset-left)); }
+  .measure { max-width: 640px; }
+
+  /* 読み進めた量を、帯ゲージと同じ塗りで示す */
+  .progress { position: fixed; inset: 0 0 auto 0; height: 3px; z-index: 50; background: transparent; pointer-events: none; }
+  .progress i { display: block; height: 100%; transform-origin: 0 50%; transform: scaleX(0); background: linear-gradient(90deg, rgba(47,184,154,.55), var(--in)); box-shadow: 0 0 12px rgba(47,184,154,.6); }
+
+  /* ================= 冒頭 ================= */
+  .hero {
+    position: relative; overflow: hidden;
+    padding-block: calc(28px + env(safe-area-inset-top)) 72px;
+    background:
+      radial-gradient(1200px 600px at 70% -10%, rgba(47,184,154,.10), transparent 60%),
+      linear-gradient(180deg, var(--ink-deep), var(--ink) 70%);
+  }
+  /* 計器盤の目盛りのような細い横線 */
+  .hero::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background-image: repeating-linear-gradient(180deg, rgba(242,245,248,.035) 0 1px, transparent 1px 48px);
+    mask-image: linear-gradient(180deg, #000, transparent 85%);
+    -webkit-mask-image: linear-gradient(180deg, #000, transparent 85%);
+  }
+  .topbar { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+  .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--text); font-weight: 900; font-size: 18px; text-decoration: none; }
+  .brand-icon { width: 32px; height: 32px; border-radius: 8px; box-shadow: 0 0 0 1px rgba(242,245,248,.08); }
+  .topbar a.store-mini { font-size: 14px; font-weight: 700; color: var(--text); text-decoration: none; border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px; background: rgba(25,33,43,.6); }
+
+  .hero-grid { position: relative; display: grid; gap: 32px; margin-top: 44px; align-items: center; grid-template-areas: "copy" "stage" "controls"; }
+  .hero-copy { grid-area: copy; }
+  .stage { grid-area: stage; }
+  .controls { grid-area: controls; }
+  .hero-copy h1 { font-size: clamp(44px, 13vw, 88px); line-height: 1.12; letter-spacing: -0.01em; }
+  .hero-copy h1 .line { display: block; }
+  .hero-copy .lede { margin-top: 20px; font-size: 17px; max-width: 30em; }
+  .hero-copy .lede b { color: var(--text); font-weight: 700; }
+
+  /* 試用の操作 */
+  .controls { display: grid; gap: 12px; max-width: 420px; width: 100%; justify-self: center; }
+  @media (min-width: 900px) { .controls { margin-top: 28px; justify-self: start; } }
+  .stepper { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; padding: 12px 12px 12px 18px; border-radius: 16px; background: rgba(25,33,43,.72); border: 1px solid var(--border); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .stepper .lbl { color: var(--text); font-weight: 700; }
+  .stepper .lbl small { display: block; color: var(--text-3); font-weight: 500; font-size: 12px; line-height: 1.5; }
+  .stepper .ctl { display: flex; align-items: center; gap: 6px; }
+  .stepper button {
+    width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--border);
+    background: var(--surface-alt); color: var(--text); font: 600 20px/1 var(--mono); cursor: pointer;
+    transition: background-color .15s, transform .1s;
+  }
+  .stepper button:hover { background: #2a3746; }
+  .stepper button:active { transform: scale(.94); }
+  .stepper button:disabled { opacity: .35; cursor: default; transform: none; }
+  .stepper output { min-width: 3.4em; text-align: center; color: var(--text); font: 600 18px/1 var(--mono); }
+  .try-note { font-size: 12px; color: var(--text-3); line-height: 1.6; }
+
+  /* 端末と画面の再現 */
+  .stage { position: relative; display: grid; place-items: center; perspective: 1400px; padding-block: 8px; }
+  .glow {
+    position: absolute; width: 120%; aspect-ratio: 1; max-width: 640px; border-radius: 50%;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--status) 34%, transparent), transparent 70%);
+    filter: blur(20px); transition: background .6s;
+    left: 50%; top: 50%; transform: translate(-50%, -50%);
+  }
+  .device {
+    --rx: 0deg; --ry: 0deg;
+    position: relative; width: min(340px, 86vw); aspect-ratio: 440 / 900;
+    border-radius: 54px; padding: 11px;
+    background: linear-gradient(145deg, #2b3440, #0b0f14 40%, #1b232d);
+    box-shadow: 0 0 0 1px #3a4552 inset, 0 40px 80px -30px rgba(0,0,0,.8), 0 0 0 1px rgba(0,0,0,.6);
+    transform: rotateX(var(--rx)) rotateY(var(--ry));
+    transform-style: preserve-3d; transition: transform .25s ease-out;
+  }
+  .screen {
+    position: relative; height: 100%; border-radius: 44px; overflow: hidden;
+    background: var(--ink); display: flex; flex-direction: column;
+    padding: 14px 18px 18px; container-type: inline-size;
+  }
+  .screen::after { /* ガラスの映り込み。傾きに合わせて動く */
+    content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+    background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.07) 45%, transparent 60%);
+    background-size: 250% 250%; background-position: var(--sheen, 50%) 50%;
+  }
+  .sb { display: flex; justify-content: space-between; align-items: center; color: var(--text); font: 600 13px/1 var(--sans); padding: 4px 10px 0; }
+  .island { width: 34%; height: 26px; background: #000; border-radius: 20px; }
+  .sb .icons { display: flex; gap: 5px; align-items: center; }
+  .sb .icons i { display: block; background: var(--text); border-radius: 2px; }
+  .app-head { margin-top: 18px; color: var(--text); font-weight: 700; font-size: 20px; line-height: 1.3; }
+  .tabs { display: flex; gap: 4px; margin-top: 8px; font-size: 12px; font-weight: 700; }
+  .tabs span { padding: 3px 12px; border-radius: 999px; color: var(--text-3); }
+  .tabs span.on { background: var(--surface-alt); color: var(--text); }
+
+  .cluster { flex: 1; display: grid; grid-template-columns: auto 1fr; gap: 0 18px; align-items: center; margin-top: 10px; }
+  .gauge-col { display: grid; justify-items: center; gap: 6px; padding-left: 26px; }
+  .gauge { position: relative; width: 15cqw; max-width: 56px; height: 86cqw; }
+  .gauge svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .gauge .scale { position: absolute; left: -30px; width: 24px; text-align: right; font: 400 10px/13px var(--mono); color: var(--text-2); transform: translateY(-50%); }
+  .gauge .pointer { position: absolute; left: calc(100% + 3px); top: 0; width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-right: 7px solid var(--status); transform: translateY(-5px); }
+  .foot { text-align: center; line-height: 1.2; }
+  .foot b { display: block; color: var(--text); font: 600 20px/1.1 var(--mono); }
+  .foot span { font-size: 10px; color: var(--text-2); }
+
+  .readout { min-width: 0; display: grid; gap: 6px; align-content: center; }
+  .readout .lbl { font-size: 12px; color: var(--text-2); }
+  .value { color: var(--text); font-family: var(--mono); font-weight: 600; line-height: .95; letter-spacing: -0.04em; font-size: min(20cqw, 72px); white-space: nowrap; }
+  .value small { font-size: .42em; color: var(--text-2); letter-spacing: 0; margin-left: 2px; }
+  .chip { justify-self: start; display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font: 600 11px/1.4 var(--mono); letter-spacing: .04em; color: var(--status); background: color-mix(in srgb, var(--status) 13%, transparent); transition: color .3s, background-color .3s; }
+  .chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .divider { height: 1px; background: var(--border); margin-block: 4px; }
+  .coach { color: var(--text); font-weight: 700; font-size: min(5.4cqw, 19px); line-height: 1.45; white-space: pre-line; min-height: 4.35em; transition: color .3s; }
+  .rows { display: grid; }
+  .rows .row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding-block: 7px; border-top: 1px solid var(--border); font-size: 11.5px; }
+  .rows .row span:first-child { color: var(--text-2); }
+  .rows .row small { display: block; font-size: 10px; color: var(--text-3); line-height: 1.3; }
+  .rows .row .v { color: var(--text); font: 600 13px/1 var(--mono); white-space: nowrap; }
+  .rows .row .v.pace { font-size: 16px; color: var(--status); }
+  .rows .row[hidden] { display: none; }
+  .record { margin-top: 10px; height: 42px; border-radius: 14px; display: grid; place-items: center; background: var(--in); color: var(--ink); font-weight: 700; font-size: 13px; }
+
+  /* ================= 本文 ================= */
+  main > section { position: relative; padding-block: 88px; }
+  main > section + section { border-top: 1px solid rgba(42,53,66,.6); }
+  .kicker { color: var(--text-2); font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+  .kicker::before { content: ""; width: 22px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--under), var(--in) 50%, var(--over)); }
+  .kicker.ai::before { background: var(--in); box-shadow: 0 0 10px rgba(47,184,154,.7); }
+  h2 { margin-top: 14px; font-size: clamp(30px, 7.6vw, 52px); line-height: 1.22; letter-spacing: -0.005em; }
+  .lead { margin-top: 20px; font-size: 17px; }
+  .lead b { color: var(--text); }
+
+  .jump { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+  .jump a { text-decoration: none; color: var(--text); font-weight: 700; font-size: 14px; border: 1px solid var(--border); background: var(--surface); padding: 8px 14px; border-radius: 999px; transition: border-color .2s; }
+  .jump a:hover { border-color: var(--in); }
+
+  /* 実機の画面 */
+  .phones { margin-top: 20px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(230px, 1fr); gap: 20px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 24px 0 36px; scrollbar-width: thin; }
+  .phones figure { margin: 0; scroll-snap-align: start; display: grid; gap: 16px; align-content: start; align-self: start; }
+  /* RocketSim で撮ったベゼル付きの画像（背景は透明）。枠は画像そのものなので CSS では描かない */
+  .phones .shot img { width: 100%; height: auto; aspect-ratio: 760 / 1506; filter: drop-shadow(0 16px 20px rgba(0,0,0,.5)); }
+  .phones figcaption b { display: block; color: var(--text); font-size: 18px; line-height: 1.45; }
+  .phones figcaption span { display: block; margin-top: 6px; font-size: 14px; line-height: 1.75; }
+  .pro { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; padding: 18px 20px; border-radius: 18px; border: 1px solid var(--border); background: var(--surface); }
+  .pro b { color: var(--text); }
+
+  /* 作り方 */
+  .flow { margin-top: 44px; display: grid; gap: 14px; counter-reset: step; }
+  .flow li { list-style: none; position: relative; padding: 20px 20px 20px 72px; border-radius: 18px; background: var(--surface); border: 1px solid var(--border); counter-increment: step; }
+  .flow li::before { content: counter(step); position: absolute; left: 20px; top: 18px; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: rgba(47,184,154,.12); color: var(--in); font: 600 16px/1 var(--mono); }
+  .flow { padding: 0; }
+  .flow b { display: block; color: var(--text); font-size: 18px; }
+  .flow .tool { display: inline-block; margin-top: 2px; font: 500 12px/1.6 var(--mono); color: var(--in); }
+  .flow p { margin-top: 6px; font-size: 15px; }
+  .stats { margin-top: 28px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 18px; overflow: hidden; }
+  .stats div { background: var(--ink); padding: 18px 16px; display: grid; gap: 4px; }
+  .stats dt { font-size: 12px; color: var(--text-2); line-height: 1.5; }
+  .stats dd { margin: 0; color: var(--text); font: 600 clamp(22px, 6vw, 34px)/1.1 var(--mono); letter-spacing: -0.02em; }
+  .stats dd small { font-size: .5em; color: var(--text-2); letter-spacing: 0; }
+
+  /* AIの利用箇所：AIと人の分担を1行ずつ */
+  .usage { margin-top: 44px; display: grid; gap: 0; border-top: 1px solid var(--border); }
+  .usage .u { display: grid; gap: 10px; padding-block: 22px; border-bottom: 1px solid var(--border); }
+  .usage .u h3 { font-size: 20px; font-weight: 700; }
+  .usage .tools { display: flex; flex-wrap: wrap; gap: 6px; }
+  .usage .tools span { font: 500 12px/1.5 var(--mono); color: var(--in); background: rgba(47,184,154,.1); border: 1px solid rgba(47,184,154,.25); padding: 2px 9px; border-radius: 999px; }
+  .usage .split { display: grid; gap: 8px; }
+  .usage .who { display: grid; grid-template-columns: 3.2em 1fr; gap: 10px; font-size: 15px; line-height: 1.7; }
+  .usage .who i { font-style: normal; font-size: 12px; font-weight: 700; color: var(--text-3); padding-top: 2px; }
+  .usage .who.ai i { color: var(--in); }
+  .usage .who.human span { color: var(--text); }
+  .nobody { margin-top: 28px; padding: 22px; border-radius: 18px; background: linear-gradient(135deg, rgba(47,184,154,.12), rgba(47,184,154,.02)); border: 1px solid rgba(47,184,154,.35); }
+  .nobody b { color: var(--text); font-size: 18px; display: block; }
+
+  /* 前提 */
+  .layers { margin-top: 36px; display: grid; gap: 10px; }
+  .layer { border-radius: 18px; padding: 18px 20px; border: 1px solid var(--border); display: grid; gap: 6px; }
+  .layer.js { background: linear-gradient(135deg, rgba(47,184,154,.14), rgba(47,184,154,.03)); border-color: rgba(47,184,154,.4); }
+  .layer.native { background: var(--surface); }
+  .layer .t { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .layer b { color: var(--text); font-size: 18px; }
+  .layer .web { font-size: 13px; color: var(--text-2); }
+  .layer p { font-size: 15px; }
+  .layers .on { text-align: center; font-size: 12px; color: var(--text-3); }
+
+  .rv { margin-top: 24px; display: grid; gap: 10px; }
+  .rv .pkt { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 18px; border-radius: 16px; background: var(--text); color: var(--ink); font-weight: 700; }
+  .rv .pkt .mono { font-size: 13px; }
+  .rv .to { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .rv .dev { padding: 16px; border-radius: 16px; border: 1px solid var(--border); background: var(--surface); display: grid; gap: 4px; }
+  .rv .dev b { color: var(--text); font-size: 15px; }
+  .rv .dev .mono { font-size: 12px; }
+  .rv .dev em { font-style: normal; font-weight: 700; font-size: 14px; }
+  .rv .dev.ok { border-color: rgba(47,184,154,.5); }
+  .rv .dev.ok em { color: var(--in); }
+  .rv .dev.ng { opacity: .75; }
+  .rv .dev.ng em { color: var(--over); }
+  .rv .route { text-align: center; font-size: 12px; color: var(--text-3); }
+
+  /* OTA とストア更新の比較 */
+  .ota { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ota .way { padding: 16px; border-radius: 16px; border: 1px solid var(--border); background: var(--surface); }
+  .ota .way.on { border-color: rgba(47,184,154,.5); background: linear-gradient(135deg, rgba(47,184,154,.12), rgba(47,184,154,.02)); }
+  .ota .way > b { display: block; color: var(--text); font-size: 16px; margin-bottom: 8px; }
+  .ota dl { margin: 0; display: grid; gap: 8px; }
+  .ota dt { font-size: 11px; color: var(--text-3); line-height: 1.4; }
+  .ota dd { margin: 0; color: var(--text); font-size: 14px; line-height: 1.5; }
+  .ota .way.on dd { color: var(--in); }
+
+  /* 事故 */
+  .incidents { margin-top: 56px; display: grid; gap: 20px; }
+  .incident { border-radius: 24px; padding: 24px; background: var(--surface); border: 1px solid var(--border); display: grid; gap: 14px; position: relative; overflow: hidden; }
+  .incident .no { font: 600 12px/1 var(--mono); color: var(--under); letter-spacing: .06em; }
+  .incident h3 { font-size: clamp(22px, 5.6vw, 28px); }
+  .incident p { font-size: 15px; }
+  .sizes { display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: end; padding: 18px; border-radius: 16px; background: var(--ink); }
+  .sizes .sq { display: grid; gap: 8px; justify-items: start; }
+  .sizes .box { border-radius: 4px; }
+  .sizes .small .box { width: 12px; height: 12px; background: var(--in); box-shadow: 0 0 12px rgba(47,184,154,.7); }
+  .sizes .big .box { width: 100%; max-width: 130px; aspect-ratio: 1; background: repeating-linear-gradient(45deg, rgba(224,162,58,.9) 0 6px, rgba(224,162,58,.6) 6px 12px); }
+  .sizes b { color: var(--text); font: 600 15px/1.2 var(--mono); }
+  .sizes span { font-size: 12px; line-height: 1.5; }
+  .race { display: grid; gap: 14px; padding: 18px; border-radius: 16px; background: var(--ink); }
+  .race .lane { display: grid; gap: 6px; }
+  .race .k { display: flex; justify-content: space-between; font-size: 13px; }
+  .race .k b { color: var(--text); font-family: var(--mono); font-weight: 600; }
+  .race .bar { position: relative; height: 12px; border-radius: 6px; background: var(--track); overflow: hidden; }
+  .race .bar i { position: absolute; inset: 0 auto 0 0; border-radius: 6px; }
+  .race .limit { position: relative; height: 0; }
+  .health { display: inline-flex; gap: 8px; align-items: center; font: 500 12px/1.5 var(--mono); color: var(--in); }
+  .health::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--in); box-shadow: 0 0 8px var(--in); }
+
+  /* 5つの関所 */
+  .gates { margin-top: 44px; padding: 0; display: grid; gap: 0; position: relative; align-items: start; }
+  .gates::before { content: ""; position: absolute; left: 17px; top: 20px; bottom: 20px; width: 2px; background: linear-gradient(180deg, var(--border), var(--in)); }
+  .gates li { list-style: none; position: relative; display: grid; grid-template-columns: 36px 1fr; gap: 16px; padding-block: 14px; }
+  .gates .node { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--ink); border: 2px solid var(--border); color: var(--text-2); font: 600 13px/1 var(--mono); position: relative; z-index: 1; }
+  .gates li.ai .node { border-color: var(--in); color: var(--ink); background: var(--in); box-shadow: 0 0 18px rgba(47,184,154,.55); }
+  .gates b { color: var(--text); font-size: 17px; display: block; }
+  .gates .kind { font-size: 12px; font-weight: 700; color: var(--text-3); }
+  .gates li.ai .kind { color: var(--in); }
+  .gates p { font-size: 15px; }
+  .term { margin-top: 20px; border-radius: 18px; overflow: hidden; border: 1px solid var(--border); background: var(--ink-deep); }
+  .term .bar { display: flex; gap: 6px; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .term .bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--surface-alt); }
+  .term pre { margin: 0; padding: 16px 18px; font: 500 13px/1.9 var(--mono); color: var(--text-2); white-space: pre-wrap; }
+  .term .ng { color: var(--over); }
+  .term .ok { color: var(--in); }
+  .secret { margin-top: 16px; font-size: 14px; }
+
+  /* 修正49件：1件＝1マス */
+  .waffle-wrap { margin-top: 40px; display: grid; gap: 28px; }
+  .waffle { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; max-width: 320px; }
+  .waffle i { aspect-ratio: 1; border-radius: 5px; background: var(--surface-alt); }
+  .waffle i.c1 { background: var(--in); box-shadow: 0 0 10px rgba(47,184,154,.5); }
+  .waffle i.c2 { background: var(--under); }
+  .waffle i.c3 { background: #6b7c8d; }
+  .waffle i.c4 { background: #2e3a47; }
+  .legend { display: grid; gap: 12px; align-content: start; }
+  .legend div { display: grid; grid-template-columns: 14px 3em 1fr; gap: 12px; align-items: baseline; }
+  .legend .sw { width: 12px; height: 12px; border-radius: 3px; transform: translateY(1px); }
+  .legend .n { color: var(--text); font: 600 18px/1 var(--mono); text-align: right; }
+  .legend b { color: var(--text); }
+  .found { margin-top: 56px; display: grid; gap: 12px; padding: 0; }
+  .found li { list-style: none; padding: 18px 20px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); display: grid; gap: 4px; }
+  .found b { color: var(--text); font-size: 16px; }
+  .found span { font: 500 12px/1.5 var(--mono); color: var(--text-3); }
+
+  .stack-list { margin: 40px 0 0; display: grid; gap: 0; border-top: 1px solid var(--border); }
+  .stack-list div { display: grid; grid-template-columns: 7.5em 1fr; gap: 16px; padding-block: 14px; border-bottom: 1px solid var(--border); }
+  .stack-list dt { font-size: 13px; color: var(--text-3); padding-top: 2px; }
+  .stack-list dd { margin: 0; color: var(--text); font-size: 15px; }
+
+  .cta { position: relative; overflow: hidden; padding-block: 96px calc(96px + env(safe-area-inset-bottom)); background: radial-gradient(900px 420px at 50% 110%, rgba(47,184,154,.22), transparent 70%), var(--ink-deep); text-align: center; }
+  .cta h2 { margin-top: 0; }
+  .cta p { margin-top: 16px; }
+  .store {
+    display: inline-flex; align-items: center; gap: 10px; margin-top: 32px;
+    padding: 16px 28px; border-radius: 16px; background: var(--in); color: var(--ink);
+    font-weight: 900; font-size: 18px; text-decoration: none;
+    box-shadow: 0 10px 40px -10px rgba(47,184,154,.8); transition: transform .15s, box-shadow .2s;
+  }
+  .store:hover { transform: translateY(-2px); box-shadow: 0 16px 50px -10px rgba(47,184,154,.9); }
+  .cta small { display: block; margin-top: 28px; font-size: 12px; color: var(--text-3); }
+
+
+  /* 常に出しておくインストール導線 */
+  body { padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
+  .dock {
+    position: fixed; z-index: 60; left: 50%; bottom: calc(12px + env(safe-area-inset-bottom));
+    transform: translateX(-50%); width: min(560px, calc(100% - 24px));
+    display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 12px;
+    border-radius: 20px; border: 1px solid rgba(242,245,248,.1);
+    background: rgba(16,21,28,.78); backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%);
+    box-shadow: 0 16px 40px -12px rgba(0,0,0,.8);
+  }
+  .dock img { width: 44px; height: 44px; border-radius: 11px; flex: none; }
+  .dock .t { min-width: 0; flex: 1; line-height: 1.35; }
+  .dock .t b { display: block; color: var(--text); font-size: 15px; }
+  .dock .t span { display: block; font-size: 12px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dock a { flex: none; display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 12px; background: var(--in); color: var(--ink); font-weight: 900; font-size: 15px; text-decoration: none; transition: transform .15s, box-shadow .2s; }
+  .dock a:hover { transform: translateY(-1px); box-shadow: 0 8px 24px -8px rgba(47,184,154,.9); }
+
+  /* スクロールで各セクションが開く。スクリプトが動くときだけ閉じた状態から始める */
+  @media (prefers-reduced-motion: no-preference) {
+    .js .reveal { opacity: 0; transform: translateY(28px); transition: opacity .7s cubic-bezier(.2,.8,.2,1), transform .7s cubic-bezier(.2,.8,.2,1); transition-delay: var(--d, 0s); }
+    .js .reveal.open { opacity: 1; transform: none; }
+    /* 見出しは幕が上がるように開く。閉じている間も要素の大きさは保つ（交差の判定のため clip は開いてから当てる） */
+    .js .reveal-h { opacity: 0; }
+    .js .reveal-h.open { opacity: 1; animation: curtain .9s cubic-bezier(.2,.8,.2,1) both; animation-delay: var(--d, 0s); }
+    @keyframes curtain { from { clip-path: inset(0 0 100% 0); transform: translateY(18px); } to { clip-path: inset(0 0 -10% 0); transform: none; } }
+    .js .kicker.reveal::before { transform: scaleX(0); transform-origin: 0 50%; transition: transform .8s .15s cubic-bezier(.2,.8,.2,1); }
+    .js .kicker.reveal.open::before { transform: scaleX(1); }
+    .js main > section::after { content: ""; position: absolute; left: 0; right: 0; top: -1px; height: 1px; background: linear-gradient(90deg, transparent, var(--in), transparent); transform: scaleX(0); transition: transform 1.2s cubic-bezier(.2,.8,.2,1); }
+    .js main > section.opened::after { transform: scaleX(1); }
+  }
+
+  @media (min-width: 900px) {
+    .hero-grid { grid-template-columns: 1.05fr .95fr; grid-template-areas: "copy stage" "controls stage"; gap: 0 24px; margin-top: 56px; }
+    .hero-copy { align-self: end; }
+    .controls { align-self: start; }
+    .hero { padding-bottom: 96px; }
+    .usage .split { grid-template-columns: 1fr 1fr; gap: 24px; }
+    .usage .u { grid-template-columns: 220px 1fr; column-gap: 32px; }
+    .usage .u h3 { grid-row: span 2; }
+    .incidents { grid-template-columns: 1fr 1fr; }
+    .waffle-wrap { grid-template-columns: 320px 1fr; gap: 48px; align-items: center; }
+    .gates { grid-template-columns: repeat(5, 1fr); gap: 16px; }
+    .gates::before { left: 18px; right: 18px; top: 17px; bottom: auto; width: auto; height: 2px; background: linear-gradient(90deg, var(--border), var(--in)); }
+    .gates li { grid-template-columns: 1fr; gap: 14px; padding: 0; }
+    .found { grid-template-columns: 1fr 1fr; }
+    .layers { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 380px) {
+    .stats { grid-template-columns: 1fr; }
+    .rv .to { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .device, .glow, .chip, .coach, .store { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="progress" aria-hidden="true"><i id="progress"></i></div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="topbar">
+      <a class="brand" href="#top" id="top" aria-label="Bander">
+        <img class="brand-icon" src="img/icon.png" alt="" width="32" height="32">
+        Bander
+      </a>
+    </div>
+
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <h1><span class="line">今日休んで、</span><span class="line">大丈夫か。</span></h1>
+        <p class="lede">SESエンジニアのための稼働管理アプリ <b>Bander</b>。月の稼働が精算幅（下限〜上限）のどこに着地するかを見込み、あと何日休めるかを答えます。</p>
+
+      </div>
+
+      <div class="stage">
+        <div class="glow" aria-hidden="true"></div>
+        <div class="device" id="device">
+          <div class="screen" role="img" aria-live="polite" aria-label="Bander のホーム画面の再現" id="screen">
+            <div class="sb" aria-hidden="true"><span>9:41</span><span class="island"></span><span class="icons"><i style="width:14px;height:8px"></i><i style="width:20px;height:9px;border-radius:3px"></i></span></div>
+            <div class="app-head">2026年9月</div>
+            <div class="tabs" aria-hidden="true"><span class="on">メイン</span><span>サブ</span><span>合計</span></div>
+
+            <div class="cluster">
+              <div class="gauge-col">
+                <div class="gauge" id="gauge">
+                  <svg id="gauge-svg" viewBox="0 0 50 276" preserveAspectRatio="none" aria-hidden="true">
+                    <defs>
+                      <linearGradient id="bandFill" x1="0" y1="1" x2="0" y2="0"><stop id="g-s0" offset="0" stop-color="#2fb89a" stop-opacity="0.72"/><stop id="g-s1" offset="1" stop-color="#2fb89a" stop-opacity="1"/></linearGradient>
+                      <clipPath id="trackClip"><rect x="0" y="0" width="50" height="276" rx="12"/></clipPath>
+                    </defs>
+                    <g clip-path="url(#trackClip)">
+                      <rect x="0" y="0" width="50" height="276" fill="#222c38"/>
+                      <rect x="0" y="230.0" width="50" height="46.0" fill="#e0a23a" opacity="0.12"/>
+                      <rect x="0" y="0" width="50" height="46.0" fill="#e0685a" opacity="0.12"/>
+                      <rect x="0" y="46.0" width="50" height="184.0" fill="#2fb89a" opacity="0.08"/>
+                      <line x1="0" y1="220.8" x2="8" y2="220.8" stroke="#f2f5f8" stroke-width="1" opacity="0.14"/><line x1="0" y1="165.6" x2="8" y2="165.6" stroke="#f2f5f8" stroke-width="1" opacity="0.14"/><line x1="0" y1="110.4" x2="8" y2="110.4" stroke="#f2f5f8" stroke-width="1" opacity="0.14"/><line x1="0" y1="55.2" x2="8" y2="55.2" stroke="#f2f5f8" stroke-width="1" opacity="0.14"/>
+                      <rect id="g-fill" x="0" y="188.6" width="50" height="87.4" fill="url(#bandFill)" rx="12"/>
+                      <line x1="0" y1="46.0" x2="50" y2="46.0" stroke="#f2f5f8" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.5"/>
+                      <line x1="0" y1="230.0" x2="50" y2="230.0" stroke="#f2f5f8" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.5"/>
+                      <line id="g-marker" x1="0" y1="188.6" x2="50" y2="188.6" stroke="#f2f5f8" stroke-width="2" opacity="0.9"/>
+                    </g>
+                  </svg>
+                  <span class="scale" style="top:16.67%">180</span>
+                  <span class="scale" style="top:83.33%">140</span>
+                  <span class="pointer" id="pointer" style="top:68.33%"></span>
+                </div>
+                <div class="foot"><b class="mono">19</b><span>営業日</span></div>
+              </div>
+
+              <div class="readout">
+                <span class="lbl">見込み</span>
+                <span class="value"><span id="val">149</span><small>h</small></span>
+                <span class="chip" id="chip">IN RANGE</span>
+                <div class="divider"></div>
+                <p class="coach" id="coach">順調です。
+あと1日休めます。</p>
+                <div class="rows">
+                  <div class="row"><span>下限まで</span><span class="v" id="margin">余裕 9h</span></div>
+                  <div class="row" id="pace-row" hidden><span>1日あたり<small id="pace-note">残り8日</small></span><span class="v pace" id="pace">+1h10m</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="record" aria-hidden="true">＋ 今日を記録</div>
+          </div>
+        </div>
+      </div>
+
+        <div class="controls" aria-label="画面を動かしてみる">
+        <div class="stepper">
+          <span class="lbl" id="off-lbl">今月、あと休む日<small>1日休むと見込みが8時間減ります</small></span>
+          <div class="ctl">
+            <button type="button" id="off-dec" aria-label="休む日を1日減らす">−</button>
+            <output id="off-out" aria-labelledby="off-lbl">0日</output>
+            <button type="button" id="off-inc" aria-label="休む日を1日増やす">＋</button>
+          </div>
+        </div>
+        <div class="stepper">
+          <span class="lbl" id="ot-lbl">今月の残業<small>4時間ずつ</small></span>
+          <div class="ctl">
+            <button type="button" id="ot-dec" aria-label="残業を4時間減らす">−</button>
+            <output id="ot-out" aria-labelledby="ot-lbl">0h</output>
+            <button type="button" id="ot-inc" aria-label="残業を4時間増やす">＋</button>
+          </div>
+        </div>
+        <p class="try-note">下限140h・上限180h、9月は19営業日で残り8日という例の値です。判定と文言はアプリと同じにしています。</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section id="app">
+    <div class="wrap">
+      <div class="measure">
+        <p class="kicker">AIハッカソン 説明資料</p>
+        <h2><span class="nw">月の途中でも、</span><span class="nw">今どこにいるかが</span><span class="nw">分かる。</span></h2>
+        <p class="lead">精算幅の契約では、月の稼働が下限を割ると報酬が控除され、上限を超えると超過分が精算されます。月末になれば実績は分かりますが、月の途中で「このまま行くと何時間になるか」は勤怠表からは読み取りにくい。Bander はそれを見込みで出します。</p>
+        <nav class="jump" aria-label="このページのAIの説明">
+          <a href="#ai">AIの利用箇所</a>
+          <a href="#guard">事故から作った見張り番</a>
+          <a href="#found">AIが見つけた問題</a>
+        </nav>
+      </div>
+
+      <div class="phones">
+        <figure>
+          <div class="shot"><img src="img/home.webp" alt="ホーム画面。見込み149hが140〜180の帯の中にあり、順調です、あと1日休めます、と表示" width="760" height="1506" loading="lazy"></div>
+          <figcaption><b>帯の中のどこにいるか</b><span>見込みの時間と、あと何日休めるかを出します。</span></figcaption>
+        </figure>
+        <figure>
+          <div class="shot"><img src="img/calendar.webp" alt="カレンダー画面。全休・時短・定時・超過が色分けされている" width="760" height="1506" loading="lazy"></div>
+          <figcaption><b>毎日の入力はいらない</b><span>記録のない営業日は定時で見込みます。入れるのは休んだ日と残業した日だけ。祝日は自動で除きます。</span></figcaption>
+        </figure>
+        <figure>
+          <div class="shot"><img src="img/under.webp" alt="下限割れの画面。見込み133h、フル稼働でも下限に届きません、1日あたり+1h30mと表示" width="760" height="1506" loading="lazy"></div>
+          <figcaption><b>下限を割る前に気づける</b><span>1日あたり何時間足せば下限に戻るかを出し、来月のリスクは通知で知らせます。</span></figcaption>
+        </figure>
+      </div>
+
+      <p class="pro measure"><b>帯の可視化は無料です。</b><span>¥1,000 の買い切り（Bander Pro）で、見込み報酬と控除額、複数現場の合算、家事按分の年間集計が使えます。</span></p>
+    </div>
+  </section>
+
+  <section id="build">
+    <div class="wrap">
+      <div class="measure">
+        <p class="kicker ai">作り方</p>
+        <h2><span class="nw">Claude Code に、</span><span class="nw">ドキュメントを</span><span class="nw">渡して作った。</span></h2>
+        <p class="lead">個人開発です。先に仕様を文書にしておき、それを Claude Code に渡して実装させました。仕様が文書になっていると、AIが書いたコードが仕様と合っているかを、人とAIの両方で確かめられます。</p>
+      </div>
+      <ol class="flow measure">
+        <li><b>設計を書く</b><span class="tool">project-docs（自作スキル）</span><p>要求・機能設計・用語集を docs/ に書く。</p></li>
+        <li><b>作業を計画する</b><span class="tool">steering-docs（自作スキル）</span><p>機能ごとの設計とタスクを .steering/ に書く。</p></li>
+        <li><b>実装を任せる</b><span class="tool">Claude Code</span><p>完了条件を先に決め、満たすまで実装させる。</p></li>
+        <li><b>触って直す</b><span class="tool">iOS Simulator</span><p>大きい画面と iPhone SE で確かめ、気になった点を言葉で戻す。</p></li>
+      </ol>
+      <dl class="stats measure">
+        <div><dt>着手</dt><dd>7/14<small> 2026</small></dd></div>
+        <div><dt>Claude と共同のコミット</dt><dd>219<small> / 267</small></dd></div>
+        <div><dt>テスト</dt><dd>226<small> 件</small></dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section id="ai">
+    <div class="wrap">
+      <div class="measure">
+        <p class="kicker ai">AIの利用箇所</p>
+        <h2><span class="nw">AIを使ったのは、</span><span class="nw">この7つの工程。</span></h2>
+        <p class="lead">どの工程でも、AIが作ったものを採用するかどうかの判断と、実機での確認は人が行いました。</p>
+      </div>
+      <div class="usage">
+        <div class="u"><h3>設計</h3><div class="tools"><span>Claude Code</span><span>project-docs</span><span>steering-docs</span></div>
+          <div class="split"><div class="who ai"><i>AI</i><span>要求・機能設計・作業ごとのタスクリストを作成</span></div><div class="who human"><i>人</i><span>仕様とスコープの決定</span></div></div></div>
+        <div class="u"><h3>実装・テスト</h3><div class="tools"><span>Claude Code</span></div>
+          <div class="split"><div class="who ai"><i>AI</i><span>実装とテスト（267コミット中219件が共同）</span></div><div class="who human"><i>人</i><span>完了条件の設定、実機での確認</span></div></div></div>
+        <div class="u"><h3>UIデザイン</h3><div class="tools"><span>Claude Code</span><span>Appllama MCP</span></div>
+          <div class="split"><div class="who ai"><i>AI</i><span>売上上位アプリを参考に画面を作り直し</span></div><div class="who human"><i>人</i><span>手本の選定、採否の判断</span></div></div></div>
+        <div class="u"><h3>アイコン</h3><div class="tools"><span>ChatGPT</span></div>
+          <div class="split"><div class="who ai"><i>AI</i><span>アプリアイコンのデザイン</span></div><div class="who human"><i>人</i><span>デザインの採用</span></div></div></div>
+        <div class="u"><h3>ストア素材・資料</h3><div class="tools"><span>Claude Code</span><span>Figma MCP</span><span>Claude Design</span></div>
+          <div class="split"><div class="who ai"><i>AI</i><span>App Store のスクリーンショット、ポスター・チラシ・スライド</span></div><div class="who human"><i>人</i><span>文言と構成の確認</span></div></div></div>
+        <div class="u"><h3>チュートリアル動画</h3><div class="tools"><span>Claude Code</span><span>ffmpeg</span></div>
+          <div class="split"><div class="who ai"><i>AI</i><span>シミュレータ操作の録画とテロップの合成</span></div><div class="who human"><i>人</i><span>台本の確認</span></div></div></div>
+        <div class="u"><h3>品質・運用</h3><div class="tools"><span>サブエージェント</span><span>GitHub Actions の Claude</span></div>
+          <div class="split"><div class="who ai"><i>AI</i><span>修正49件の棚卸し、配る前の自動確認、PRごとのレビュー</span></div><div class="who human"><i>人</i><span>自動化する範囲と、指摘の採否の判断</span></div></div></div>
+      </div>
+      <div class="nobody measure"><b>アプリ本体は、AIを使っていません。</b>稼働の計算は端末の中だけで行い、データを外部へ送りません。</div>
+    </div>
+  </section>
+
+  <section id="guard">
+    <div class="wrap">
+      <div class="measure">
+        <p class="kicker ai">事故から作った見張り番</p>
+        <h2><span class="nw">手元では動くのに、</span><span class="nw">配ると壊れる。</span></h2>
+        <p class="lead">開発中に、この種類の事故が2回起きました。どちらもスマホアプリ特有の仕組みで起きたので、先にその仕組みを説明します。</p>
+
+        <h3 style="margin-top:48px;font-size:22px">スマホアプリは、本体と中身の2層</h3>
+        <div class="layers">
+          <div class="layer js"><div class="t"><b>中身（JavaScript）</b><span class="web">Web で言えば Web ページ</span></div><p>画面と計算。開発中は Metro（Web の Vite に当たる開発サーバー）が配り、保存すると約1秒で反映されます。</p></div>
+          <div class="on">↑ 本体の上で動く</div>
+          <div class="layer native"><div class="t"><b>本体（ネイティブ）</b><span class="web">Web で言えば ブラウザ</span></div><p>通知や保存などを担う外部ライブラリを組み込んだ iOS アプリ。変えたら数分かけてビルドし直します。</p></div>
+        </div>
+
+        <h3 style="margin-top:48px;font-size:22px"><span class="nw">OTA更新：</span><span class="nw">アプリを入れ直さずに、</span><span class="nw">中身だけ届ける</span></h3>
+        <p class="lead" style="font-size:16px">OTA（Over The Air）更新は、App Store でアプリを更新してもらわなくても、アプリを開いたときに裏で新しい中身（JavaScript）を受け取り、次に開いたときから新しい中身で動く仕組みです。Web ページを直すと、ブラウザを入れ直さなくても次に開いたときに新しいページになるのと同じです。</p>
+        <div class="ota">
+          <div class="way"><b>ストアで更新</b><dl><div><dt>届けるもの</dt><dd>本体と中身の両方</dd></div><div><dt>審査</dt><dd>あり</dd></div><div><dt>届くまで</dt><dd>数時間〜数日</dd></div></dl></div>
+          <div class="way on"><b>OTA で更新</b><dl><div><dt>届けるもの</dt><dd>中身だけ</dd></div><div><dt>審査</dt><dd>なし</dd></div><div><dt>届くまで</dt><dd>開いたときに受け取り、次の起動から</dd></div></dl></div>
+        </div>
+        <p style="margin-top:14px;font-size:15px">文言の修正や計算のバグなら、OTA ですぐに直せます。ただし本体（ネイティブ）の変更は届けられません。</p>
+
+        <h3 style="margin-top:48px;font-size:22px"><span class="nw">runtimeVersion：</span><span class="nw">本体と中身の組み合わせを</span><span class="nw">確かめる番号</span></h3>
+        <p class="lead" style="font-size:16px">OTA で困るのは、本体が古いまま中身だけ新しくなるときです。本体にまだ無いライブラリを呼んで落ちます。Web で言えば、まだ無い API を呼んでしまう状態です。そこで本体と中身の両方に番号を刻み、一致する本体にだけ届けます。</p>
+        <div class="rv" role="img" aria-label="runtimeVersion 3f2a の新しい中身は、3f2a の本体には届き、9c1e の古い本体には届かない">
+          <div class="pkt"><span>新しい中身を配る</span><span class="mono">runtimeVersion 3f2a…</span></div>
+          <div class="route">一致する本体にだけ届く</div>
+          <div class="to">
+            <div class="dev ok"><b>本体 3f2a…</b><span class="mono">一致</span><em>受け取って動く</em></div>
+            <div class="dev ng"><b>本体 9c1e…</b><span class="mono">古い本体</span><em>次のストア版を待つ</em></div>
+          </div>
+        </div>
+        <p style="margin-top:16px;font-size:15px">Bander は、本体に効くファイル（ネイティブのライブラリ・設定・パッチ）のハッシュを runtimeVersion にしています。本体に効く変更があれば値が必ず変わるので、番号を上げ忘れません。図中の値は例です。</p>
+      </div>
+
+      <div class="incidents">
+        <article class="incident">
+          <span class="no">事故1</span>
+          <h3><span class="nw">配ったアプリが、</span><span class="nw">起動直後に落ちた。</span></h3>
+          <p>本体に組み込むライブラリの不具合を、パッチ（差分ファイル）で直しています。そのパッチに、自分の Mac でビルドしたときの生成物が混ざりました。手元にはその生成物があるので動きますが、配布用のビルドサーバー（EAS）ではパッチを当てられず、直っていないライブラリのまま作られ、TestFlight で起動直後に落ちました。</p>
+          <div class="sizes" aria-label="パッチの大きさの比較。面積が大きさに比例">
+            <div class="sq small"><span class="box"></span><b>13KB</b><span>本来の修正<br>14ファイル</span></div>
+            <div class="sq big"><span class="box"></span><b>1.4MB</b><span>生成物が混ざったパッチ・478ファイル</span></div>
+          </div>
+        </article>
+        <article class="incident">
+          <span class="no">事故2</span>
+          <h3><span class="nw">壊れていないのに、</span><span class="nw">つながらない。</span></h3>
+          <p>開発中のアプリも、起動のたびに Metro から runtimeVersion を受け取って照合します。Metro はそれを毎回、約1.2GB 分のライブラリのハッシュ計算から求めていて、アプリが待つ約10秒に間に合いませんでした。</p>
+          <div class="race" aria-label="待ち時間の比較">
+            <div class="lane"><div class="k"><span>ヘルスチェック</span><span class="health">即答：動いています</span></div></div>
+            <div class="lane"><div class="k"><span>アプリが待つ時間</span><b>約10秒</b></div><div class="bar"><i style="width:11%;background:var(--in)"></i></div></div>
+            <div class="lane"><div class="k"><span>Metro の返事</span><b>30〜90秒</b></div><div class="bar"><i style="width:100%;background:rgba(224,162,58,.3)"></i><i style="width:33%;background:var(--under)"></i></div></div>
+          </div>
+          <p>撮影中だけ番号を固定すれば1〜3秒で返ります。ただし戻し忘れると、本体に効く変更をしても番号が変わらず、古い本体に合わない中身を配ってしまいます。回避策そのものが、次の事故の種になります。</p>
+        </article>
+      </div>
+
+      <div class="measure" style="margin-top:72px">
+        <h3 style="font-size:clamp(24px,6vw,34px)"><span class="nw">配るまでの5か所で、</span><span class="nw">止める。</span></h3>
+        <p class="lead" style="font-size:16px">判定はAIを使わないスクリプトが行うので、毎回同じ結果になります。NGのときは、AI（サブエージェント）が原因と直し方を説明します。</p>
+      </div>
+      <ol class="gates">
+        <li><span class="node">1</span><div><span class="kind">自動判定</span><b>コミット前</b><p>パッチの生成物・runtimeVersion の固定・eas.json・Lint</p></div></li>
+        <li><span class="node">2</span><div><span class="kind">自動判定</span><b>PR と main</b><p>上に加えて、型チェックとテスト226件</p></div></li>
+        <li><span class="node">3</span><div><span class="kind">自動判定</span><b>EAS ビルド</b><p>パッチを実際に当てる・課金キーの有無</p></div></li>
+        <li><span class="node">4</span><div><span class="kind">自動判定</span><b>OTA 配信の前</b><p>中身だけを配る前に、runtimeVersion の戻し忘れ</p></div></li>
+        <li class="ai"><span class="node">AI</span><div><span class="kind">AIがレビュー</span><b>PR レビュー</b><p>用語集との整合・テストの有無・ストア文言の制約</p></div></li>
+      </ol>
+      <div class="term measure" aria-label="事故当時のファイルで試した結果">
+        <div class="bar" aria-hidden="true"><i></i><i></i><i></i></div>
+<pre><span class="ng">[NG]</span> パッチ 1.4MB・478 ファイル
+<span class="ng">[NG]</span> eas.json のコメントキー
+<span class="ng">[NG]</span> runtimeVersion が固定のまま
+<span class="ok">→</span> 原因と直し方は patch-guard / metro-runtime-guard が説明</pre>
+      </div>
+      <p class="secret measure">事故当時のファイルで試すと、どれも配る前に止まります。あわせて、.env や署名鍵はAIが読めないよう設定で止めています。</p>
+    </div>
+  </section>
+
+  <section id="found">
+    <div class="wrap">
+      <div class="measure">
+        <p class="kicker ai">AIが見つけた問題</p>
+        <h2><span class="nw">修正49件を、</span><span class="nw">AIに棚卸しさせた。</span></h2>
+        <p class="lead">1マスが1件の修正です。機械的に防げるものは、上の自動確認にしました。</p>
+      </div>
+      <div class="waffle-wrap">
+        <div class="waffle" id="waffle" role="img" aria-label="修正49件の内訳：機械的に防げた6件、計算の誤り6件、UI・表示25件、その他12件"></div>
+        <div class="legend">
+          <div><span class="sw" style="background:var(--in)"></span><span class="n">6</span><span><b>機械的に防げた</b>：自動確認にした</span></div>
+          <div><span class="sw" style="background:var(--under)"></span><span class="n">6</span><span><b>計算の誤り</b>：テストとレビューで守る</span></div>
+          <div><span class="sw" style="background:#6b7c8d"></span><span class="n">25</span><span><b>UI・表示</b>：人とシミュレータで確かめる</span></div>
+          <div><span class="sw" style="background:#2e3a47"></span><span class="n">12</span><span><b>その他</b>：外部要因・単発など</span></div>
+        </div>
+      </div>
+
+      <div class="measure" style="margin-top:72px">
+        <h3 style="font-size:clamp(24px,6vw,34px)"><span class="nw">PRごとのAIレビューが、</span><span class="nw">人の見落としを</span><span class="nw">4件見つけた。</span></h3>
+      </div>
+      <ul class="found">
+        <li><b>単価の設定まで、有料機能に読める文言</b><span>ストアの更新文 #28</span></li>
+        <li><b>監査が失敗しても「問題なし」と出る</b><span>脆弱性の仕分け #29</span></li>
+        <li><b>課金 SDK の更新が届かなくなる設定</b><span>Dependabot #29</span></li>
+        <li><b>確認用ビルドでは、価格が一度も出ない</b><span>画面確認の手順 #44</span></li>
+      </ul>
+      <p class="measure" style="margin-top:20px">どれも人が確かめてから直しました。レビューするAI自身も裏取りをしていて、誤っていた指摘は取り下げています。</p>
+    </div>
+  </section>
+
+  <section id="stack">
+    <div class="wrap">
+      <div class="measure">
+        <p class="kicker">技術スタック</p>
+        <h2><span class="nw">サーバーもログインもない</span><span class="nw">iOS アプリ。</span></h2>
+        <p class="lead">データは端末の SQLite に保存します。稼働の計算は入出力を持たない関数にまとめ、テストで確かめています。</p>
+        <dl class="stack-list">
+          <div><dt>アプリ</dt><dd>Expo SDK 57、React Native 0.86、TypeScript、Expo Router</dd></div>
+          <div><dt>データ</dt><dd>expo-sqlite + Drizzle ORM、Zustand</dd></div>
+          <div><dt>画面</dt><dd>react-native-svg、Reanimated、Flash Calendar</dd></div>
+          <div><dt>端末の機能</dt><dd>ローカル通知、WidgetKit、祝日データ</dd></div>
+          <div><dt>課金と配布</dt><dd>RevenueCat、EAS Build / Submit / Update（OTA）</dd></div>
+          <div><dt>品質</dt><dd>Jest、ESLint、GitHub Actions</dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="cta">
+  <div class="wrap">
+    <h2>ログイン不要。<br>すぐ使えます。</h2>
+    <p>iPhone 版を App Store で公開中です。オフラインで動き、データは端末の中だけに保存されます。</p>
+    <a class="store" href="https://apps.apple.com/jp/app/id6792344875" target="_blank" rel="noopener">App Store で見る</a>
+    <small>数字は 2026年9月18日時点のものです。 <a href="../privacy.html">プライバシーポリシー</a></small>
+  </div>
+</footer>
+
+<aside class="dock" aria-label="アプリの入手">
+  <img src="img/icon.png" alt="" width="44" height="44">
+  <div class="t"><b>Bander</b><span>iPhone・ログイン不要・帯の可視化は無料</span></div>
+  <a href="https://apps.apple.com/jp/app/id6792344875" target="_blank" rel="noopener">App Store で入手</a>
+</aside>
+
+<script>
+(function () {
+  // ── アプリの BandGauge.tsx と同じ描き方・同じ判定 ──
+  var MIN = 140, MAX = 180, BASE = 149, PER_DAY = 8, LEFT_DAYS = 8;
+  var COLORS = { under: '#e0a23a', inBand: '#2fb89a', over: '#e0685a' };
+  var LABEL = { under: 'UNDER', inBand: 'IN RANGE', over: 'OVER' };
+  var W = 50, H = 276;
+  var pad = Math.max((MAX - MIN) * 0.25, 8), lo = MIN - pad, hi = MAX + pad, span = hi - lo;
+  var toY = function (h) { return H - ((h - lo) / span) * H; };
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var fill = document.getElementById('g-fill');
+  var marker = document.getElementById('g-marker');
+  var s0 = document.getElementById('g-s0'), s1 = document.getElementById('g-s1');
+  var pointer = document.getElementById('pointer');
+
+  var shown = 0, anim = null;
+  function paint(p) {
+    var y = H - p * H;
+    fill.setAttribute('y', y); fill.setAttribute('height', Math.max(0, H - y));
+    marker.setAttribute('y1', y); marker.setAttribute('y2', y);
+    pointer.style.top = (y / H * 100) + '%';
+  }
+  // 値が変わるたびに、空から現在値までフルスイープ（アプリの「賢い立ち上がり」と同じ）
+  function sweep(to) {
+    if (anim) cancelAnimationFrame(anim);
+    if (reduced) { paint(to); shown = to; return; }
+    var t0 = null, dur = 650;
+    function step(t) {
+      if (t0 === null) t0 = t;
+      var k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+      paint(to * e);
+      if (k < 1) anim = requestAnimationFrame(step); else shown = to;
+    }
+    anim = requestAnimationFrame(step);
+  }
+
+  function fmt(hours) { // formatHours(hm)
+    var tot = Math.round(hours * 60), h = Math.floor(tot / 60), m = tot % 60;
+    return h + 'h' + (m ? m + 'm' : '');
+  }
+
+  var off = 0, ot = 0, last = null;
+  var $ = function (id) { return document.getElementById(id); };
+  function render() {
+    var proj = BASE - off * PER_DAY + ot;
+    var status = proj < MIN ? 'under' : proj > MAX ? 'over' : 'inBand';
+    var color = COLORS[status];
+    document.documentElement.style.setProperty('--status', color);
+    s0.setAttribute('stop-color', color); s1.setAttribute('stop-color', color);
+    $('val').textContent = proj;
+    $('chip').textContent = LABEL[status];
+    // coachingFor と同じ文言
+    var daysOff = Math.max(0, Math.floor((proj - MIN) / PER_DAY));
+    var coach, tone = 'neutral';
+    if (status === 'over') { coach = '上限を' + fmt(proj - MAX) + '\n超えます。\n稼働は控えめに。'; tone = 'over'; }
+    else if (status === 'under') { coach = 'フル稼働でも\n下限に届きません。'; tone = 'under'; }
+    else if (daysOff === 0) { coach = '余白ゼロ。\nこれ以上休むと\n下限割れの見込み。'; tone = 'under'; }
+    else { coach = '順調です。\nあと' + daysOff + '日休めます。'; }
+    $('coach').textContent = coach;
+    $('coach').style.color = tone === 'neutral' ? '' : COLORS[tone];
+    var margin = $('margin');
+    if (proj < MIN) { margin.textContent = 'あと ' + fmt(MIN - proj); margin.style.color = COLORS.under; }
+    else { margin.textContent = '余裕 ' + fmt(proj - MIN); margin.style.color = ''; }
+    // paceLine：帯内では出さない
+    var days = LEFT_DAYS - off, paceRow = $('pace-row');
+    if (status === 'inBand') { paceRow.hidden = true; }
+    else {
+      paceRow.hidden = false;
+      $('pace-note').textContent = '残り' + days + '日';
+      $('pace').textContent = status === 'under' ? '+' + fmt((MIN - proj) / days) : '−' + fmt((proj - MAX) / days);
+    }
+    $('off-out').textContent = off + '日';
+    $('ot-out').textContent = ot + 'h';
+    $('off-dec').disabled = off <= 0; $('off-inc').disabled = off >= 4;
+    $('ot-dec').disabled = ot <= 0; $('ot-inc').disabled = ot >= 40;
+    var p = Math.min(1, Math.max(0, (Math.min(Math.max(proj, lo), hi) - lo) / span));
+    if (p !== last) { sweep(p); last = p; }
+  }
+  $('off-inc').onclick = function () { off = Math.min(4, off + 1); render(); };
+  $('off-dec').onclick = function () { off = Math.max(0, off - 1); render(); };
+  $('ot-inc').onclick = function () { ot = Math.min(40, ot + 4); render(); };
+  $('ot-dec').onclick = function () { ot = Math.max(0, ot - 4); render(); };
+  render();
+
+  // ── 端末の傾き（マウスのときだけ） ──
+  var device = $('device'), screen = $('screen');
+  if (!reduced && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    var stage = device.parentElement;
+    stage.addEventListener('pointermove', function (e) {
+      var r = stage.getBoundingClientRect();
+      var x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+      device.style.setProperty('--ry', (x * 14).toFixed(2) + 'deg');
+      device.style.setProperty('--rx', (-y * 10).toFixed(2) + 'deg');
+      screen.style.setProperty('--sheen', (50 + x * 80).toFixed(1) + '%');
+    });
+    stage.addEventListener('pointerleave', function () {
+      device.style.setProperty('--ry', '0deg'); device.style.setProperty('--rx', '0deg');
+    });
+  }
+
+  // ── 修正49件のマス ──
+  var waffle = $('waffle'), cats = [[6, 'c1'], [6, 'c2'], [25, 'c3'], [12, 'c4']];
+  cats.forEach(function (c) { for (var j = 0; j < c[0]; j++) { var b = document.createElement('i'); b.className = c[1]; waffle.appendChild(b); } });
+
+  // ── スクロールで各セクションを開く ──
+  if ('IntersectionObserver' in window && !reduced) {
+    var targets = [];
+    document.querySelectorAll('main > section').forEach(function (sec) {
+      var blocks = sec.querySelectorAll('.wrap > *, .measure > *, .usage > .u, .flow > li, .gates > li, .found > li, .incidents > article, .phones > figure, .layers > *, .stack-list > div, .waffle-wrap > *');
+      var i = 0;
+      blocks.forEach(function (el) {
+        // 中身を1つずつ開く入れ物は、入れ物自体は動かさない
+        if (el.matches('div.measure:not(.nobody):not(.term), .usage, .flow, .gates, .found, .incidents, .phones, .layers, .stack-list, .waffle-wrap')) return;
+        if (el.matches('h2, h3')) el.classList.add('reveal-h'); else el.classList.add('reveal');
+        el.style.setProperty('--d', Math.min(i, 6) * 0.07 + 's'); i++;
+        targets.push(el);
+      });
+    });
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        e.target.classList.add('open');
+        var sec = e.target.closest('main > section'); if (sec) sec.classList.add('opened');
+        io.unobserve(e.target);
+      });
+    }, { rootMargin: '0px 0px -12% 0px', threshold: 0.08 });
+    targets.forEach(function (t) { io.observe(t); });
+  } else {
+    document.documentElement.classList.remove('js');
+  }
+
+  // ── 読み進めた量 ──
+  var bar = $('progress'), ticking = false;
+  function onScroll() {
+    var d = document.documentElement, max = d.scrollHeight - d.clientHeight;
+    bar.style.transform = 'scaleX(' + (max > 0 ? d.scrollTop / max : 0) + ')';
+    ticking = false;
+  }
+  window.addEventListener('scroll', function () { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
+  onScroll();
+})();
+</script>
+</body>
+</html>
