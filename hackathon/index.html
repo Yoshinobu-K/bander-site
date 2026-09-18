@@ -347,6 +347,7 @@
   .dock .t b { display: block; color: var(--text); font-size: 15px; }
   .dock .t span { display: block; font-size: 12px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .dock a { flex: none; display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 12px; background: var(--in); color: var(--ink); font-weight: 900; font-size: 15px; text-decoration: none; transition: transform .15s, box-shadow .2s; }
+  @media (max-width: 359px) { .dock .t span { display: none; } .dock a { padding: 0 12px; } }
   .dock a:hover { transform: translateY(-1px); box-shadow: 0 8px 24px -8px rgba(47,184,154,.9); }
 
   /* スクロールで各セクションが開く。スクリプトが動くときだけ閉じた状態から始める */
@@ -704,7 +705,7 @@
 
 <aside class="dock" aria-label="アプリの入手">
   <img src="img/icon.png" alt="" width="44" height="44">
-  <div class="t"><b>Bander</b><span>iPhone・ログイン不要</span></div>
+  <div class="t"><b>Bander</b><span>ログイン不要</span></div>
   <a href="https://apps.apple.com/jp/app/id6792344875" target="_blank" rel="noopener">App Store で入手</a>
 </aside>
 
