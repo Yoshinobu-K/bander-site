@@ -255,6 +255,38 @@
   .ota dd { margin: 0; color: var(--text); font-size: 14px; line-height: 1.5; }
   .ota .way.on dd { color: var(--in); }
 
+  /* 品質管理 */
+  .roles { margin-top: 40px; display: grid; gap: 12px; }
+  .role { padding: 20px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); display: grid; gap: 6px; align-content: start; }
+  .role.ai { border-color: rgba(47,184,154,.5); background: linear-gradient(160deg, rgba(47,184,154,.14), rgba(47,184,154,.02) 60%); }
+  .role .who { font-size: 12px; font-weight: 700; color: var(--text-2); }
+  .role.ai .who { color: var(--in); }
+  .role b { color: var(--text); font-size: 22px; font-weight: 900; }
+  .role p { font-size: 15px; }
+  .role .where { margin-top: 6px; font: 500 12px/1.5 var(--mono); color: var(--text-3); }
+  .sub-h { font-size: clamp(24px, 6vw, 34px); }
+  .pipeline { margin: 36px 0 0; padding: 0; position: relative; display: grid; gap: 0; max-width: 760px; }
+  .pipeline::before { content: ""; position: absolute; left: 17px; top: 18px; bottom: 18px; width: 2px; background: linear-gradient(180deg, var(--border), var(--in) 45%, var(--border)); }
+  .pipeline li { list-style: none; position: relative; display: grid; grid-template-columns: 36px 1fr; gap: 16px; padding-block: 12px; }
+  .pipeline .node { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--ink); border: 2px solid var(--border); color: var(--text-2); font: 600 13px/1 var(--mono); position: relative; z-index: 1; }
+  .pipeline li.ai .node { background: var(--in); border-color: var(--in); color: var(--ink); box-shadow: 0 0 18px rgba(47,184,154,.55); }
+  .pipeline li > div { padding: 14px 16px; border-radius: 16px; border: 1px solid var(--border); background: var(--surface); display: grid; gap: 4px; }
+  .pipeline li.ai > div { border-color: rgba(47,184,154,.45); }
+  .pipeline .when { font-size: 12px; font-weight: 700; color: var(--text-3); }
+  .pipeline b { color: var(--text); font-size: 17px; }
+  .pipeline p { font-size: 14px; line-height: 1.75; }
+  .pipeline .tag { justify-self: start; margin-top: 4px; font: 500 11px/1.6 var(--mono); padding: 1px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-2); }
+  .pipeline .tag.ai { color: var(--in); border-color: rgba(47,184,154,.4); }
+  .points { margin: 20px 0 0; padding: 0; counter-reset: pt; display: grid; gap: 0; border-top: 1px solid var(--border); }
+  .points li { list-style: none; counter-increment: pt; display: grid; grid-template-columns: 28px 1fr; gap: 10px; padding-block: 12px; border-bottom: 1px solid var(--border); font-size: 15px; line-height: 1.7; color: var(--text); }
+  .points li::before { content: counter(pt); font: 600 14px/1.7 var(--mono); color: var(--in); }
+  .term .dim { color: var(--text-3); }
+  .cycle { margin-top: 36px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; counter-reset: cy; }
+  .cycle div { position: relative; padding: 16px 16px 16px 50px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); counter-increment: cy; display: grid; gap: 2px; }
+  .cycle div::before { content: counter(cy); position: absolute; left: 14px; top: 16px; width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; background: rgba(47,184,154,.14); color: var(--in); font: 600 12px/1 var(--mono); }
+  .cycle b { color: var(--text); font-size: 16px; }
+  .cycle span { font-size: 13px; line-height: 1.6; }
+
   /* 事故 */
   .incidents { margin-top: 56px; display: grid; gap: 20px; }
   .incident { border-radius: 24px; padding: 24px; background: var(--surface); border: 1px solid var(--border); display: grid; gap: 14px; position: relative; overflow: hidden; }
@@ -378,6 +410,8 @@
     .gates::before { left: 18px; right: 18px; top: 17px; bottom: auto; width: auto; height: 2px; background: linear-gradient(90deg, var(--border), var(--in)); }
     .gates li { grid-template-columns: 1fr; gap: 14px; padding: 0; }
     .found { grid-template-columns: 1fr 1fr; }
+    .roles { grid-template-columns: repeat(3, 1fr); }
+    .cycle { grid-template-columns: repeat(4, 1fr); }
     .layers { grid-template-columns: 1fr; }
   }
   @media (max-width: 380px) {
@@ -493,8 +527,8 @@
         <p class="lead">精算幅の契約では、月の稼働が下限を割ると報酬が控除され、上限を超えると超過分が精算されます。月末になれば実績は分かりますが、月の途中で「このまま行くと何時間になるか」は勤怠表からは読み取りにくい。Bander はそれを見込みで出します。</p>
         <nav class="jump" aria-label="このページのAIの説明">
           <a href="#ai">AIの利用箇所</a>
-          <a href="#guard">事故から作った見張り番</a>
-          <a href="#found">AIが見つけた問題</a>
+          <a href="#guard">事故の話</a>
+          <a href="#quality">AIとCIの品質管理</a>
         </nav>
       </div>
 
@@ -568,7 +602,7 @@
   <section id="guard">
     <div class="wrap">
       <div class="measure">
-        <p class="kicker ai">事故から作った見張り番</p>
+        <p class="kicker ai">きっかけ</p>
         <h2><span class="nw">手元では動くのに、</span><span class="nw">配ると壊れる。</span></h2>
         <p class="lead">開発中に、この種類の事故が2回起きました。どちらもスマホアプリ特有の仕組みで起きたので、先にその仕組みを説明します。</p>
 
@@ -623,47 +657,89 @@
         </article>
       </div>
 
-      <div class="measure" style="margin-top:72px">
-        <h3 style="font-size:clamp(24px,6vw,34px)"><span class="nw">配るまでの5か所で、</span><span class="nw">止める。</span></h3>
-        <p class="lead" style="font-size:16px">判定はAIを使わないスクリプトが行うので、毎回同じ結果になります。NGのときは、AI（サブエージェント）が原因と直し方を説明します。</p>
+    </div>
+  </section>
+
+  <section id="quality">
+    <div class="wrap">
+      <div class="measure">
+        <p class="kicker ai">品質管理</p>
+        <h2><span class="nw">判断の要らない確認は、</span><span class="nw">すべて機械に任せた。</span></h2>
+        <p class="lead">個人開発では、確認する人が自分しかいません。そこで「確認」を3つに分けました。<b>毎回同じ答えになる判定はスクリプト</b>、<b>原因の説明と観点に沿ったレビューはAI</b>、<b>採否と見た目の判断は人</b>が受け持ちます。</p>
       </div>
-      <ol class="gates">
-        <li><span class="node">1</span><div><span class="kind">自動判定</span><b>コミット前</b><p>パッチの生成物・runtimeVersion の固定・eas.json・Lint</p></div></li>
-        <li><span class="node">2</span><div><span class="kind">自動判定</span><b>PR と main</b><p>上に加えて、型チェックとテスト226件</p></div></li>
-        <li><span class="node">3</span><div><span class="kind">自動判定</span><b>EAS ビルド</b><p>パッチを実際に当てる・課金キーの有無</p></div></li>
-        <li><span class="node">4</span><div><span class="kind">自動判定</span><b>OTA 配信の前</b><p>中身だけを配る前に、runtimeVersion の戻し忘れ</p></div></li>
-        <li class="ai"><span class="node">AI</span><div><span class="kind">AIがレビュー</span><b>PR レビュー</b><p>用語集との整合・テストの有無・ストア文言の制約</p></div></li>
+
+      <div class="roles">
+        <div class="role"><span class="who">スクリプト</span><b>判定する</b><p>パッチ・runtimeVersion・eas.json・課金キー・Lint・型・テスト。AIを使わないので、数秒で終わり、毎回同じ結果になる。</p><span class="where">scripts/checks/ ・ GitHub Actions</span></div>
+        <div class="role ai"><span class="who">AI</span><b>説明して、レビューする</b><p>NGの原因と直し方を説明する。PRごとに、決めた観点で差分を読んで指摘する。指摘は自分でも裏を取る。</p><span class="where">サブエージェント3つ ・ PRレビュー</span></div>
+        <div class="role human"><span class="who">人</span><b>決める</b><p>何を自動化するか、指摘を採るか、画面の見た目がよいか。機械に任せられない判断だけが残る。</p><span class="where">PR のマージ ・ 実機での確認</span></div>
+      </div>
+
+      <div class="measure" style="margin-top:72px">
+        <h3 class="sub-h"><span class="nw">書いてから届くまで、</span><span class="nw">6か所で止める。</span></h3>
+        <p class="lead" style="font-size:16px">コードが利用者に届くまでの道のりに、確認を順に置いています。どれも手元で同じコマンドを打てば再現できます。</p>
+      </div>
+      <ol class="pipeline">
+        <li><span class="node">1</span><div><span class="when">コミットする前</span><b>pre-commit</b><p>パッチの生成物、runtimeVersion の固定、eas.json、変更したファイルの Lint。コミットに含まれるファイルだけを見るので数秒。</p><span class="tag">スクリプト</span></div></li>
+        <li><span class="node">2</span><div><span class="when">PR を出したとき・main</span><b>CI（GitHub Actions）</b><p>上の確認に加えて、実際に npm ci でパッチを当て、型チェックとテスト226件を流す。</p><span class="tag">スクリプト</span></div></li>
+        <li class="ai"><span class="node">AI</span><div><span class="when">PR を出したとき</span><b>AI のコードレビュー</b><p>GitHub Actions の Claude が、CLAUDE.md に書いた7つの観点で差分を読み、PR にコメントする。指摘がなくても、見た観点を要約して残す。</p><span class="tag ai">AI</span></div></li>
+        <li><span class="node">3</span><div><span class="when">配布用にビルドするとき</span><b>EAS ビルド</b><p>ビルドサーバー上でパッチを当て直し、runtimeVersion と課金キーの有無を確かめる。落ちればビルドが止まる。</p><span class="tag">スクリプト</span></div></li>
+        <li><span class="node">4</span><div><span class="when">中身だけを配る前</span><b>OTA 配信</b><p>npm run ota:update 経由でしか配らない。runtimeVersion を固定したままなら配信を止める。</p><span class="tag">スクリプト</span></div></li>
+        <li><span class="node">5</span><div><span class="when">毎週月曜</span><b>依存の更新と脆弱性</b><p>Dependabot が更新の PR を出し、CI と同じ確認を通す。npm audit の結果は「アプリに入るもの」と「開発用の道具」に仕分けて残す。</p><span class="tag">スクリプト</span></div></li>
       </ol>
+
+      <div class="measure" style="margin-top:56px">
+        <h3 class="sub-h" style="font-size:22px">AIのレビューが見る7つの観点</h3>
+        <p style="margin-top:10px;font-size:15px">実装する Claude Code と、PR をレビューする Claude は、同じ CLAUDE.md を読みます。書く側と見る側が同じ基準を持つようにしています。</p>
+      </div>
+      <ol class="points measure">
+        <li>稼働計算が用語集の定義・式と一致しているか。祝日・月またぎ・上限ちょうどなど境界のテストがあるか</li>
+        <li>金額（見込み報酬・控除・超過）と、無料 / Pro の境界の変更にテストがあるか</li>
+        <li>計算のコードに入出力（DB・通信）が混ざっていないか</li>
+        <li>画面遷移が決めた仕組みを通っているか（連打で二重に開かない）</li>
+        <li>DB の変更がカラムの追加だけか</li>
+        <li>文言がストア掲載のルールに反していないか（「完全無料」は使わない）</li>
+        <li>小さい画面（iPhone SE）と長い文字列で崩れないか</li>
+      </ol>
+
       <div class="term measure" aria-label="事故当時のファイルで試した結果">
         <div class="bar" aria-hidden="true"><i></i><i></i><i></i></div>
-<pre><span class="ng">[NG]</span> パッチ 1.4MB・478 ファイル
-<span class="ng">[NG]</span> eas.json のコメントキー
+<pre><span class="dim">$ 事故当時のファイルで各確認を実行</span>
+<span class="ng">[NG]</span> パッチ 1.4MB・478 ファイル（本来は 13KB）
+<span class="ng">[NG]</span> eas.json のコメントキー・プレースホルダ・environment 抜け
 <span class="ng">[NG]</span> runtimeVersion が固定のまま
 <span class="ok">→</span> 原因と直し方は patch-guard / metro-runtime-guard が説明</pre>
       </div>
-      <p class="secret measure">事故当時のファイルで試すと、どれも配る前に止まります。あわせて、.env や署名鍵はAIが読めないよう設定で止めています。</p>
+      <p class="measure" style="margin-top:14px;font-size:15px">新しい確認は、<b style="color:var(--text)">事故当時のファイルで実際に NG になることを確かめてから</b>採用しています。</p>
     </div>
   </section>
 
   <section id="found">
     <div class="wrap">
       <div class="measure">
-        <p class="kicker ai">AIが見つけた問題</p>
-        <h2><span class="nw">修正49件を、</span><span class="nw">AIに棚卸しさせた。</span></h2>
-        <p class="lead">1マスが1件の修正です。機械的に防げるものは、上の自動確認にしました。</p>
+        <p class="kicker ai">何を自動化するか</p>
+        <h2><span class="nw">自動化する範囲は、</span><span class="nw">過去の修正49件から</span><span class="nw">決めた。</span></h2>
+        <p class="lead">感覚で確認を増やすと、重くなるだけで効きません。AIに全コミットから修正（fix / revert）を拾わせて分類し、機械的に防げたものだけを自動にしました。</p>
       </div>
       <div class="waffle-wrap">
         <div class="waffle" id="waffle" role="img" aria-label="修正49件の内訳：機械的に防げた6件、計算の誤り6件、UI・表示25件、その他12件"></div>
         <div class="legend">
-          <div><span class="sw" style="background:var(--in)"></span><span class="n">6</span><span><b>機械的に防げた</b>：自動確認にした</span></div>
-          <div><span class="sw" style="background:var(--under)"></span><span class="n">6</span><span><b>計算の誤り</b>：テストとレビューで守る</span></div>
-          <div><span class="sw" style="background:#6b7c8d"></span><span class="n">25</span><span><b>UI・表示</b>：人とシミュレータで確かめる</span></div>
-          <div><span class="sw" style="background:#2e3a47"></span><span class="n">12</span><span><b>その他</b>：外部要因・単発など</span></div>
+          <div><span class="sw" style="background:var(--in)"></span><span class="n">6</span><span><b>機械的に防げた</b>：eas.json の書き方4件と Lint の漏れ2件。スクリプトにした</span></div>
+          <div><span class="sw" style="background:var(--under)"></span><span class="n">6</span><span><b>計算の誤り</b>：テストと、レビューの観点1・2で守る</span></div>
+          <div><span class="sw" style="background:#6b7c8d"></span><span class="n">25</span><span><b>UI・表示</b>：自動にしない。レビューの観点7と、画面確認のサブエージェント（大きい画面と iPhone SE の2台）で確かめる</span></div>
+          <div><span class="sw" style="background:#2e3a47"></span><span class="n">12</span><span><b>その他</b>：外部要因・単発。事故になったもの（パッチ）は自動確認済み</span></div>
         </div>
       </div>
 
+      <div class="cycle" aria-label="改善の回し方">
+        <div><b>棚卸しする</b><span>AIが修正を分類</span></div>
+        <div><b>選ぶ</b><span>機械で防げるものだけ</span></div>
+        <div><b>確かめる</b><span>当時のファイルで NG か</span></div>
+        <div><b>組み込む</b><span>pre-commit・CI・ビルド</span></div>
+      </div>
+      <p class="measure quiet" style="margin-top:12px">棚卸しは docs/failure-taxonomy.md に記録し、修正が積み上がったら同じ手順でやり直します。</p>
+
       <div class="measure" style="margin-top:72px">
-        <h3 style="font-size:clamp(24px,6vw,34px)"><span class="nw">PRごとのAIレビューが、</span><span class="nw">人の見落としを</span><span class="nw">4件見つけた。</span></h3>
+        <h3 class="sub-h"><span class="nw">PRごとのAIレビューが、</span><span class="nw">人の見落としを</span><span class="nw">4件見つけた。</span></h3>
       </div>
       <ul class="found">
         <li><b>単価の設定まで、有料機能に読める文言</b><span>ストアの更新文 #28</span></li>
@@ -671,7 +747,7 @@
         <li><b>課金 SDK の更新が届かなくなる設定</b><span>Dependabot #29</span></li>
         <li><b>確認用ビルドでは、価格が一度も出ない</b><span>画面確認の手順 #44</span></li>
       </ul>
-      <p class="measure" style="margin-top:20px">どれも人が確かめてから直しました。レビューするAI自身も裏取りをしていて、誤っていた指摘は取り下げています。</p>
+      <p class="measure" style="margin-top:20px">どれも人が確かめてから直しました。レビューするAI自身も裏取りをしていて、誤っていた指摘は取り下げています。あわせて、.env や署名鍵は AI が読めないよう設定で止めています。</p>
     </div>
   </section>
 
@@ -817,11 +893,11 @@
   if ('IntersectionObserver' in window && !reduced) {
     var targets = [];
     document.querySelectorAll('main > section').forEach(function (sec) {
-      var blocks = sec.querySelectorAll('.wrap > *, .measure > *, .usage > .u, .flow > li, .gates > li, .found > li, .incidents > article, .phones > figure, .layers > *, .stack-list > div, .waffle-wrap > *');
+      var blocks = sec.querySelectorAll('.wrap > *, .measure > *, .usage > .u, .flow > li, .gates > li, .found > li, .incidents > article, .phones > figure, .layers > *, .stack-list > div, .waffle-wrap > *, .roles > *, .pipeline > li, .points > li, .cycle > div');
       var i = 0;
       blocks.forEach(function (el) {
         // 中身を1つずつ開く入れ物は、入れ物自体は動かさない
-        if (el.matches('div.measure:not(.nobody):not(.term), .usage, .flow, .gates, .found, .incidents, .phones, .layers, .stack-list, .waffle-wrap')) return;
+        if (el.matches('div.measure:not(.nobody):not(.term), .usage, .flow, .gates, .found, .incidents, .phones, .layers, .stack-list, .waffle-wrap, .roles, .pipeline, .points, .cycle')) return;
         if (el.matches('h2, h3')) el.classList.add('reveal-h'); else el.classList.add('reveal');
         el.style.setProperty('--d', Math.min(i, 6) * 0.07 + 's'); i++;
         targets.push(el);
