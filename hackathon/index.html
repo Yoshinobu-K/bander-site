@@ -200,6 +200,18 @@
   .phones .shot img { width: 100%; height: auto; aspect-ratio: 760 / 1506; filter: drop-shadow(0 16px 20px rgba(0,0,0,.5)); }
   .phones figcaption b { display: block; color: var(--text); font-size: 18px; line-height: 1.45; }
   .phones figcaption span { display: block; margin-top: 6px; font-size: 14px; line-height: 1.75; }
+  /* 使い方と動画 */
+  .howto { margin-top: 48px; }
+  .howto h3 { font-size: clamp(22px, 5.6vw, 30px); }
+  .howto ol { margin: 20px 0 0; padding: 0; counter-reset: how; display: grid; gap: 0; border-top: 1px solid var(--border); }
+  .howto li { list-style: none; counter-increment: how; display: grid; grid-template-columns: 34px 1fr; gap: 4px 12px; padding-block: 16px; border-bottom: 1px solid var(--border); }
+  .howto li::before { content: counter(how); grid-row: 1 / span 2; font: 600 18px/1.5 var(--mono); color: var(--in); }
+  .howto b { color: var(--text); font-size: 17px; }
+  .howto span { font-size: 15px; line-height: 1.75; }
+  .video { margin: 28px 0 0; }
+  .video video { width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: 16px; border: 1px solid var(--border); background: var(--ink-deep); display: block; }
+  .video figcaption { margin-top: 10px; font-size: 14px; color: var(--text-2); line-height: 1.7; }
+
   .pro { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; padding: 18px 20px; border-radius: 18px; border: 1px solid var(--border); background: var(--surface); }
   .pro b { color: var(--text); }
 
@@ -562,6 +574,23 @@
         </figure>
       </div>
 
+      <div class="howto measure">
+        <h3><span class="nw">使うのは、</span><span class="nw">この3つだけ。</span></h3>
+        <ol>
+          <li><b>現場を登録する</b><span>契約の精算幅（下限・上限）と、定時の時間を入れます。</span></li>
+          <li><b>いつもと違う日だけ記録する</b><span>休んだ日と残業した日だけ。記録のない営業日は定時で見込むので、毎日つける必要はありません。</span></li>
+          <li><b>帯とウィジェットで確かめる</b><span>今月の着地とあと何日休めるか。下限を割りそうなら、1日あたり何時間足せばいいかが出ます。</span></li>
+        </ol>
+      </div>
+
+      <figure class="video measure">
+        <video controls preload="none" playsinline poster="img/video-poster.webp" width="1280" height="720">
+          <source src="video/tutorial-60s.mp4" type="video/mp4">
+          この環境では動画を再生できません。<a href="video/tutorial-60s.mp4">動画ファイルを開く</a>
+        </video>
+        <figcaption>60秒で、登録から確認までの流れを通しで見られます（音はありません）。<a href="video/tutorial-3min.mp4">3分版はこちら</a>。</figcaption>
+      </figure>
+
       <p class="pro measure"><b>帯の可視化は無料です。</b><span>¥1,000 の買い切り（Bander Pro）で、見込み報酬と控除額、複数現場の合算、家事按分の年間集計が使えます。</span></p>
     </div>
   </section>
@@ -908,7 +937,7 @@
   if ('IntersectionObserver' in window && !reduced) {
     var targets = [];
     document.querySelectorAll('main > section').forEach(function (sec) {
-      var blocks = sec.querySelectorAll('.wrap > *, .measure > *, .usage > .u, .flow > li, .gates > li, .found > li, .incidents > article, .phones > figure, .layers > *, .stack-list > div, .waffle-wrap > *, .roles > *, .pipeline > li, .points > li, .cycle > div');
+      var blocks = sec.querySelectorAll('.wrap > *, .measure > *, .usage > .u, .flow > li, .gates > li, .found > li, .incidents > article, .phones > figure, .layers > *, .stack-list > div, .waffle-wrap > *, .howto > *, .video, .roles > *, .pipeline > li, .points > li, .cycle > div');
       var i = 0;
       blocks.forEach(function (el) {
         // 中身を1つずつ開く入れ物は、入れ物自体は動かさない
