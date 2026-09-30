@@ -200,6 +200,16 @@
   .phones .shot img { width: 100%; height: auto; aspect-ratio: 760 / 1506; filter: drop-shadow(0 16px 20px rgba(0,0,0,.5)); }
   .phones figcaption b { display: block; color: var(--text); font-size: 18px; line-height: 1.45; }
   .phones figcaption span { display: block; margin-top: 6px; font-size: 14px; line-height: 1.75; }
+  /* ウィジェット */
+  .widget { margin-top: 44px; display: grid; gap: 24px; align-items: center; }
+  .widget h3 { font-size: clamp(22px, 5.6vw, 30px); }
+  .widget-copy { display: grid; gap: 14px; }
+  .widget-copy p { font-size: 16px; }
+  .widget-note { color: var(--text-2); font-size: 14px; }
+  .widget-note span { color: var(--text-3); }
+  .widget figure { margin: 0; }
+  .widget img { width: 100%; height: auto; border-radius: 18px; border: 1px solid var(--border); }
+
   .pro { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; padding: 18px 20px; border-radius: 18px; border: 1px solid var(--border); background: var(--surface); }
   .pro b { color: var(--text); }
 
@@ -421,6 +431,7 @@
     .gates::before { left: 18px; right: 18px; top: 17px; bottom: auto; width: auto; height: 2px; background: linear-gradient(90deg, var(--border), var(--in)); }
     .gates li { grid-template-columns: 1fr; gap: 14px; padding: 0; }
     .found { grid-template-columns: 1fr 1fr; }
+    .widget { grid-template-columns: 1.05fr .95fr; gap: 48px; }
     .roles { grid-template-columns: repeat(3, 1fr); }
     .cycle { grid-template-columns: repeat(4, 1fr); }
     .layers { grid-template-columns: 1fr; }
@@ -555,6 +566,17 @@
         <figure>
           <div class="shot"><img src="img/under.webp" alt="下限割れの画面。見込み133h、フル稼働でも下限に届きません、1日あたり+1h30mと表示" width="760" height="1506" loading="lazy"></div>
           <figcaption><b>下限を割る前に気づける</b><span>1日あたり何時間足せば下限に戻るかを出し、来月のリスクは通知で知らせます。</span></figcaption>
+        </figure>
+      </div>
+
+      <div class="widget">
+        <div class="widget-copy">
+          <h3><span class="nw">アプリを開かなくても、</span><span class="nw">ホーム画面で分かる。</span></h3>
+          <p>ホーム画面ウィジェットに、今月の見込みと状態（帯の中・下限割れ・上限超過）、あと何日休めるかを出します。小と中の2つの大きさがあり、中サイズは掛け持ちしている現場を並べて合計も出します。記録を入れると自動で更新されます。</p>
+          <p class="widget-note">ウィジェットは無料で使えます。<span>※ 画像の月は撮影時のものです。</span></p>
+        </div>
+        <figure>
+          <img src="img/widget.webp" alt="iPhone のホーム画面に置いた Bander のウィジェット。中サイズは2つの現場と合計、小サイズは今月の見込みとIN RANGE、あと1日休めるを表示" width="760" height="904" loading="lazy">
         </figure>
       </div>
 
@@ -904,7 +926,7 @@
   if ('IntersectionObserver' in window && !reduced) {
     var targets = [];
     document.querySelectorAll('main > section').forEach(function (sec) {
-      var blocks = sec.querySelectorAll('.wrap > *, .measure > *, .usage > .u, .flow > li, .gates > li, .found > li, .incidents > article, .phones > figure, .layers > *, .stack-list > div, .waffle-wrap > *, .roles > *, .pipeline > li, .points > li, .cycle > div');
+      var blocks = sec.querySelectorAll('.wrap > *, .measure > *, .usage > .u, .flow > li, .gates > li, .found > li, .incidents > article, .phones > figure, .layers > *, .stack-list > div, .waffle-wrap > *, .widget > *, .roles > *, .pipeline > li, .points > li, .cycle > div');
       var i = 0;
       blocks.forEach(function (el) {
         // 中身を1つずつ開く入れ物は、入れ物自体は動かさない
