@@ -210,6 +210,8 @@
   .howto span { font-size: 15px; line-height: 1.75; }
   .video { margin: 28px 0 0; }
   .video video { width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: 16px; border: 1px solid var(--border); background: var(--ink-deep); display: block; }
+  .video video.tall { display: none; aspect-ratio: 860 / 1540; width: min(100%, calc(82svh * 860 / 1540)); margin-inline: auto; }
+  @media (max-width: 599px) { .video video.wide { display: none; } .video video.tall { display: block; } }
   .video figcaption { margin-top: 10px; font-size: 14px; color: var(--text-2); line-height: 1.7; }
 
   .pro { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; padding: 18px 20px; border-radius: 18px; border: 1px solid var(--border); background: var(--surface); }
@@ -584,9 +586,13 @@
       </div>
 
       <figure class="video measure">
-        <video controls preload="none" playsinline poster="img/video-poster.webp" width="1280" height="720">
+        <video class="wide" controls preload="none" playsinline poster="img/video-poster.webp" width="1280" height="720">
           <source src="video/tutorial-60s.mp4" type="video/mp4">
           この環境では動画を再生できません。<a href="video/tutorial-60s.mp4">動画ファイルを開く</a>
+        </video>
+        <video class="tall" controls preload="none" playsinline poster="img/video-poster-vertical.webp" width="860" height="1540">
+          <source src="video/tutorial-60s-vertical.mp4" type="video/mp4">
+          この環境では動画を再生できません。<a href="video/tutorial-60s-vertical.mp4">動画ファイルを開く</a>
         </video>
         <figcaption>上の3つの手順を、実際に操作しているところで見られます（60秒・音はありません）。</figcaption>
       </figure>
