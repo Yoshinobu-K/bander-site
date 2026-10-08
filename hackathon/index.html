@@ -697,11 +697,11 @@
         <article class="incident">
           <span class="no">事故2</span>
           <h3><span class="nw">壊れていないのに、</span><span class="nw">つながらない。</span></h3>
-          <p>開発中のアプリも、起動のたびに Metro から runtimeVersion を受け取って照合します。Metro はそれを毎回、約1.2GB 分のライブラリのハッシュ計算から求めていて、アプリが待つ約10秒に間に合いませんでした。</p>
+          <p>開発中のアプリも、起動のたびに Metro から runtimeVersion を受け取って照合します。Metro はそれを毎回、約1万ファイル・107MB のハッシュ計算から求めます。平時は2秒で終わりますが、Mac のメモリが逼迫してファイルのキャッシュが効かなくなると、十数秒から200秒超までじわじわ悪化し、アプリが待つ約10秒に間に合わなくなりました。</p>
           <div class="race" aria-label="待ち時間の比較">
             <div class="lane"><div class="k"><span>ヘルスチェック</span><span class="health">即答：動いています</span></div></div>
             <div class="lane"><div class="k"><span>アプリが待つ時間</span><b>約10秒</b></div><div class="bar"><i style="width:11%;background:var(--in)"></i></div></div>
-            <div class="lane"><div class="k"><span>Metro の返事</span><b>30〜90秒</b></div><div class="bar"><i style="width:100%;background:rgba(224,162,58,.3)"></i><i style="width:33%;background:var(--under)"></i></div></div>
+            <div class="lane"><div class="k"><span>Metro の返事</span><b>十数秒→200秒超</b></div><div class="bar"><i style="width:100%;background:rgba(224,162,58,.3)"></i><i style="width:33%;background:var(--under)"></i></div></div>
           </div>
           <p>撮影中だけ番号を固定すれば1〜3秒で返ります。ただし戻し忘れると、本体に効く変更をしても番号が変わらず、古い本体に合わない中身を配ってしまいます。回避策そのものが、次の事故の種になります。</p>
         </article>
