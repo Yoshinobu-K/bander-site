@@ -274,11 +274,11 @@
   .ru .r { text-align: right; color: var(--text); font: 600 15px/1.35 var(--mono); white-space: nowrap; }
   .ru .r em { display: block; font: 700 12px/1.4 var(--sans); font-style: normal; color: var(--in); }
   .ru.ng .r em { color: var(--under); }
-  .scale { display: grid; grid-template-columns: 5.2em 1fr 7.8em; gap: 14px; font: 500 11px/1 var(--mono); color: var(--text-3); }
-  .scale span { grid-column: 2; display: flex; justify-content: space-between; }
+  .ru-scale { display: grid; grid-template-columns: 5.2em 1fr 7.8em; gap: 14px; font: 500 11px/1 var(--mono); color: var(--text-3); }
+  .ru-scale span { grid-column: 2; display: flex; justify-content: space-between; }
   .ru .need { position: absolute; top: -5px; bottom: -5px; left: calc(var(--n) / var(--max) * 100%); width: 2px; margin-left: -1px; border-radius: 1px; background: var(--text); z-index: 2; box-shadow: 0 0 0 2px var(--surface); }
   .ru .got, .ru .lost, .ru .need { transition: width .35s cubic-bezier(.2,.8,.2,1), left .35s cubic-bezier(.2,.8,.2,1); }
-  .scale span i { font-style: normal; }
+  .ru-scale span i { font-style: normal; }
   .mini { display: flex; flex-wrap: wrap; gap: 10px; }
   .ms { flex: 1 1 200px; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: 14px; background: var(--ink); border: 1px solid var(--border); }
   .ms > span { color: var(--text); font-size: 13px; font-weight: 700; }
@@ -463,9 +463,9 @@
     .sheet > .turn { grid-column: 1 / -1; padding-block: 22px; }
   }
   @media (max-width: 599px) {
-    .ru, .scale { grid-template-columns: 1fr auto; gap: 6px 12px; }
+    .ru, .ru-scale { grid-template-columns: 1fr auto; gap: 6px 12px; }
     .ru .bar { grid-column: 1 / -1; grid-row: 2; }
-    .scale span { grid-column: 1 / -1; }
+    .ru-scale span { grid-column: 1 / -1; }
   }
   @media (max-width: 380px) {
     .trust { grid-template-columns: 1fr; }
@@ -644,7 +644,7 @@
             <div class="ru free" style="--u:1"><span class="k">1分精算</span><div class="bar" aria-hidden="true"><i class="got" style="--w:38"></i><i class="need" style="--n:37.5"></i></div><span class="r">38分<em>月末 140h04m</em></span></div>
             <div class="ru ng" style="--u:15"><span class="k">15分精算</span><div class="bar" aria-hidden="true"><i class="got" style="--w:30"></i><i class="lost" style="--a:30;--w:8"></i><i class="need" style="--n:37.5"></i></div><span class="r">30分<em>139h・下限を割る</em></span></div>
             <div class="ru ng" style="--u:30"><span class="k">30分精算</span><div class="bar" aria-hidden="true"><i class="got" style="--w:30"></i><i class="lost" style="--a:30;--w:8"></i><i class="need" style="--n:37.5"></i></div><span class="r">30分<em>139h・下限を割る</em></span></div>
-            <div class="scale" aria-hidden="true"><span id="ru-scale"><i>0</i><i>15</i><i>30</i><i>45</i><i>60分</i></span></div>
+            <div class="ru-scale" aria-hidden="true"><span id="ru-scale"><i>0</i><i>15</i><i>30</i><i>45</i><i>60分</i></span></div>
           </div>
           <p id="ru-answer">下限を割らないのは、<b><span class="nw">15分精算なら毎日45分</span>、<span class="nw">30分精算なら毎日1h</span></b>。精算単位まで切り上げて残業する必要があります。</p>
           <p class="fine">1日ごとの稼働を、精算単位で切り捨てて数える場合の例です。</p>
