@@ -26,7 +26,7 @@
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Geist+Mono:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet';var d=document.documentElement;document.fonts.load('900 1em &quot;Zen Kaku Gothic New&quot;','稼働日、毎月カレンダーで数えてませんか？').then(function(){d.classList.add('fonts')},function(){d.classList.add('fonts')})">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Geist+Mono:wght@400;500;600&display=swap"></noscript>
 <style>
-  /* アプリ（src/theme/tokens.ts）と同じトークン。hackathon/ の資料と同じ計器盤の組み方 */
+  /* アプリ（src/theme/tokens.ts）と同じトークン。ページ全体を計器盤として組む */
   :root {
     --ink: #10151c;
     --ink-deep: #0a0e13;
@@ -315,11 +315,28 @@
   .try-link { margin-top: 20px; font-size: 14px; }
 
   /* 実機の画面 */
-  .phones { margin-top: 20px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(230px, 1fr); gap: 20px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 24px 0 36px; scrollbar-width: thin; }
-  .phones figure { margin: 0; scroll-snap-align: start; display: grid; gap: 16px; align-content: start; align-self: start; }
-  .phones .shot img { width: 100%; height: auto; aspect-ratio: 760 / 1506; filter: drop-shadow(0 16px 20px rgba(0,0,0,.5)); }
-  .phones figcaption b { display: block; color: var(--text); font-size: 18px; line-height: 1.45; }
-  .phones figcaption span { display: block; margin-top: 6px; font-size: 14px; line-height: 1.75; }
+  /* 画面紹介：端末は止めたまま、説明を読み進めると中の画面が切り替わる */
+  .tour { position: relative; margin-top: 24px; display: grid; }
+  .tour-phone { position: sticky; top: calc(64px + env(safe-area-inset-top)); z-index: 2; height: min(54svh, 460px); display: flex; justify-content: center; align-items: center; gap: 14px; padding-block: 8px; pointer-events: none;
+    background: linear-gradient(180deg, var(--ink) 70%, transparent); }
+  .tour-stack { position: relative; height: 100%; aspect-ratio: 760 / 1506; }
+  .tour-stack img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 18px 24px rgba(0,0,0,.55)); opacity: 0; transform: translateY(10px) scale(.985); transition: opacity .5s cubic-bezier(.2,.8,.2,1), transform .6s cubic-bezier(.2,.8,.2,1); }
+  .tour-stack img:not(.on) { transition-duration: .25s, .3s; }   /* 出ていく画面は早めに消し、2枚が重なって濁る時間を短くする */
+  .tour-stack img.on { opacity: 1; transform: none; transition-delay: .08s; }
+  .tour-dots { display: grid; gap: 8px; }
+  .tour-dots i { display: block; width: 4px; height: 18px; border-radius: 2px; background: var(--surface-alt); transition: background-color .3s, height .3s; }
+  .tour-dots i.on { height: 34px; background: var(--in); box-shadow: 0 0 10px rgba(47,184,154,.6); }
+  .tour-steps { margin: 0; padding: 0; display: grid; }
+  .tour-steps li { list-style: none; min-height: 58svh; display: flex; flex-direction: column; justify-content: center; gap: 10px; padding: 28px 0; opacity: .28; transition: opacity .4s; }
+  .tour-steps li.on { opacity: 1; }
+  .tour-steps b { color: var(--text); font-size: clamp(22px, 5.6vw, 30px); font-weight: 900; line-height: 1.4; }
+  .tour-steps span { font-size: 16px; line-height: 1.85; max-width: 26em; }
+  @media (min-width: 900px) {
+    .tour { grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
+    .tour-phone { grid-column: 2; grid-row: 1; top: calc(50vh - min(36vh, 300px)); height: min(72vh, 600px); background: none; }
+    .tour-steps { grid-column: 1; grid-row: 1; padding-block: 12vh; }
+    .tour-steps li { min-height: 72vh; padding: 0; }
+  }
 
   /* 使い方と動画 */
   .howto { margin-top: 40px; }
@@ -472,6 +489,7 @@
   }
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
+    .tour-stack img, .tour-steps li, .tour-dots i { transition: none; }
     .ru .got, .ru .lost, .ru .need { transition: none; }
     .device, .glow, .chip, .coach, .store { transition: none; }
   }
@@ -678,23 +696,22 @@
       <div class="measure">
         <h2><span class="nw">入れるのは、</span><span class="nw">いつもと違う日だけ。</span></h2>
       </div>
-      <div class="phones">
-        <figure>
-          <div class="shot"><img src="../img/home.webp" alt="ホーム画面。見込み149hが140〜180の帯の中にあり、順調です、あと1日休めます、と表示" width="760" height="1506" loading="lazy"></div>
-          <figcaption><b>帯の中のどこにいるか</b><span>月末の見込みと、あと何日休めるかを出します。</span></figcaption>
-        </figure>
-        <figure>
-          <div class="shot"><img src="../img/calendar.webp" alt="カレンダー画面。全休・時短・定時・超過が色分けされている" width="760" height="1506" loading="lazy"></div>
-          <figcaption><b>毎日の入力はいらない</b><span>記録のない営業日は定時で見込みます。入れるのは休んだ日と残業した日だけ。</span></figcaption>
-        </figure>
-        <figure>
-          <div class="shot"><img src="../img/under.webp" alt="下限割れの画面。見込み133h、フル稼働でも下限に届きません、1日あたり+1h30mと表示" width="760" height="1506" loading="lazy"></div>
-          <figcaption><b>下限を割る前に気づける</b><span>1日あたり何時間足せば下限に戻るかを出し、来月のリスクは通知で知らせます。</span></figcaption>
-        </figure>
-        <figure>
-          <div class="shot"><img src="../img/widget.webp" alt="iPhone のホーム画面に置いた Bander のウィジェット。中サイズは2026年9月のメイン149h・サブ63.5h・合計212.5h、小サイズは9月149h・IN RANGE・あと1日休めるを表示" width="760" height="1506" loading="lazy"></div>
-          <figcaption><b>開かなくても、ホーム画面で</b><span>今月の見込みと状態、あと何日休めるかをウィジェットに出します。</span></figcaption>
-        </figure>
+      <div class="tour" id="tour">
+        <div class="tour-phone" aria-hidden="true">
+          <div class="tour-stack">
+            <img src="../img/home.webp" alt="" width="760" height="1506" loading="lazy" class="on">
+            <img src="../img/calendar.webp" alt="" width="760" height="1506" loading="lazy">
+            <img src="../img/under.webp" alt="" width="760" height="1506" loading="lazy">
+            <img src="../img/widget.webp" alt="" width="760" height="1506" loading="lazy">
+          </div>
+          <div class="tour-dots"><i class="on"></i><i></i><i></i><i></i></div>
+        </div>
+        <ol class="tour-steps">
+          <li class="on" role="img" aria-label="ホーム画面。見込み149hが140〜180の帯の中にあり、順調です、あと1日休めます、と表示"><b>帯の中のどこにいるか</b><span>開くと、月末の見込みが精算幅のどこに着地するかが帯で見えます。あと何日休めるかも、一緒に出ます。</span></li>
+          <li role="img" aria-label="カレンダー画面。全休・時短・定時・超過が色分けされている"><b>毎日の入力はいらない</b><span>記録のない営業日は、定時で働くものとして見込みます。入れるのは、休んだ日・時短の日・残業した日だけ。</span></li>
+          <li role="img" aria-label="下限割れの画面。見込み133h、フル稼働でも下限に届きません、1日あたり+1h30mと表示"><b>下限を割る前に気づける</b><span>下限を割りそうなら、1日あたり何時間足せばいいかを精算単位で切り上げて出します。来月のリスクは通知で先に知らせます。</span></li>
+          <li role="img" aria-label="iPhone のホーム画面に置いた Bander のウィジェット。中サイズは2026年9月のメイン149h・サブ63.5h・合計212.5h、小サイズは9月149h・IN RANGE・あと1日休めるを表示"><b>開かなくても、ホーム画面で</b><span>今月の見込みと状態、あと何日休めるかをウィジェットに出します。掛け持ちの現場と合計も並べられます。</span></li>
+        </ol>
       </div>
 
       <div class="howto measure">
@@ -796,7 +813,6 @@
     <nav class="links" aria-label="関連ページ">
       <a href="../privacy.html">プライバシーポリシー</a>
       <a href="../support.html">サポート・お問い合わせ</a>
-      <a href="../hackathon/">開発の記録（AIハッカソン資料）</a>
     </nav>
     <small>画面と数字は説明のための例です。</small>
   </div>
@@ -810,7 +826,7 @@
 
 <script>
 (function () {
-  // ── アプリの BandGauge.tsx と同じ描き方・同じ判定（hackathon/ と同じ） ──
+  // ── アプリの BandGauge.tsx と同じ描き方・同じ判定 ──
   var MIN = 140, MAX = 180, BASE = 149, PER_DAY = 8, LEFT_DAYS = 8, UNIT_MIN = 15;
   var COLORS = { under: '#e0a23a', inBand: '#2fb89a', over: '#e0685a' };
   var LABEL = { under: 'UNDER', inBand: 'IN RANGE', over: 'OVER' };
@@ -986,9 +1002,9 @@
   if (!reduced) {
     var targets = [];
     document.querySelectorAll('main > section').forEach(function (sec) {
-      sec.querySelectorAll('.wrap > *, .measure > *, .pains > li, .sheet .cal, .ladder > li, .calc .result, .sheet > .turn, .trap > *, .bandmap > .zone, .phones > figure, .howto > ol > li, .video, .plans > *, .trust > div, .faq > details').forEach(function (el) {
+      sec.querySelectorAll('.wrap > *, .measure > *, .pains > li, .sheet .cal, .ladder > li, .calc .result, .sheet > .turn, .trap > *, .bandmap > .zone, .howto > ol > li, .video, .plans > *, .trust > div, .faq > details').forEach(function (el) {
         // 中身を1つずつ開く入れ物は、入れ物自体は動かさない
-        if (el.matches('div.measure, .pains, .sheet, .bandmap, .phones, .plans, .trust, .howto, .howto > ol, .faq') || el.parentElement.matches('.video')) return;
+        if (el.matches('div.measure, .pains, .sheet, .bandmap, .tour, .plans, .trust, .howto, .howto > ol, .faq') || el.parentElement.matches('.video')) return;
         el.classList.add(el.matches('h2, h3, h4') ? 'reveal-h' : 'reveal');
         targets.push(el);
       });
@@ -1040,6 +1056,28 @@
   } else {
     document.documentElement.classList.remove('js');
   }
+
+  // ── 画面紹介：画面のいちばん読みやすい位置にある説明に合わせて、端末の中を切り替える ──
+  (function () {
+    var tour = $('tour'); if (!tour) return;
+    var steps = tour.querySelectorAll('.tour-steps li'), imgs = tour.querySelectorAll('.tour-stack img'), dots = tour.querySelectorAll('.tour-dots i');
+    var cur = 0;
+    // 説明は4つだけなので、スクロールのたびにその場で判定する（次のフレームを待つと、速いスクロールで1段遅れる）
+    function pick() {
+      var wide = window.innerWidth >= 900, anchor = window.innerHeight * (wide ? 0.5 : 0.78), best = 0, dist = Infinity;
+      steps.forEach(function (li, i) {
+        var rc = li.getBoundingClientRect(), d = Math.abs((rc.top + rc.bottom) / 2 - anchor);
+        if (d < dist) { dist = d; best = i; }
+      });
+      if (best === cur) return;
+      cur = best;
+      [steps, imgs, dots].forEach(function (list) { list.forEach(function (el, i) { el.classList.toggle('on', i === cur); }); });
+    }
+    window.addEventListener('scroll', pick, { passive: true });
+    window.addEventListener('resize', pick);
+    // 4枚は同じ位置に重ねてあるので、loading="lazy" でも近づいた時点で4枚とも読み込まれる
+    pick();
+  })();
 
   // ── 読み進めた量 ──
   var bar = $('progress'), ticking = false;
